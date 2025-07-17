@@ -58,6 +58,8 @@ def refine_json(input_path, output_path):
         # 3) lab_id는 반복문 전체에서 항상 체크
         if str(row.get("Unnamed: 2", "")).strip() == "처방번호":
             lab_id = clean_value(row.get("종류"))
+        if str(row.get("Unnamed: 2", "")).strip() == "물성정보":
+            lab_info = clean_value(row.get("종류"))
 
         # 4) 실험정보 추출
         if not experiment_info_start and (str(row.get('Unnamed: 0', '')).strip() == '시험코드'):
@@ -73,6 +75,7 @@ def refine_json(input_path, output_path):
             code = clean_value(row.get('Unnamed: 0'))
             item = clean_value(row.get('Unnamed: 1'))
             period = clean_value(row.get('Unnamed: 4'))
+            check = clean_value(row.get('Unnamed: 5'))
             standard = clean_value(row.get('종류'))
             result = clean_value(row.get('Unnamed: 12')) or clean_value(row.get('립밤(튜브)'))
             # 시험코드가 None이 아니고, 실제 데이터가 있는 경우만 저장
@@ -86,6 +89,7 @@ def refine_json(input_path, output_path):
                     'code': code,
                     'item': item,
                     'period': period,
+                    'check': check,
                     'standard': standard,
                     'result': result
                 })
@@ -111,6 +115,7 @@ def refine_json(input_path, output_path):
     result = {
         'packing_info': packing_info,
         'lab_id': lab_id,
+        'lab_info': lab_info,
         'experiment_info': experiment_info,
         'special_notes': special_notes
         }
