@@ -28,6 +28,24 @@ def refine_json(input_path, output_path):
     special_notes = {}
     special_notes_start = False
 
+    # 결재자 정보 추출을 위한 불린 변수들 초기화
+    approval_info_start = False  # 결재 섹션 시작 여부
+    writer = False  # 작성자 존재 여부 
+    reviewer = False  # 검토자 존재 여부
+    approver = False  # 승인자 존재 여부
+    
+    # 변수들 초기화
+    test_no = None
+    test_date = None
+    expected_date = None
+    product_name = None
+    customer = None
+    developer = None
+    requester = None
+    test_count = None
+    test_quantity = None
+    lab_info = None
+
     for row in data:
         # 1) 포장재 정보 구간 제어
         if not packing_info_start and str(row.get('Unnamed: 0', '')).strip() == '포장재정보':
@@ -41,7 +59,7 @@ def refine_json(input_path, output_path):
         if packing_info_start:
             type_ = clean_value(row.get('Unnamed: 2'))
             material = clean_value(row.get('Unnamed: 4'))
-            spec = clean_value(row.get('종류'))
+            spec = clean_value(row.get('Unnamed: 6'))
             company = clean_value(row.get('Unnamed: 8'))
             if type_ is not None:
                 if not company:
@@ -57,9 +75,11 @@ def refine_json(input_path, output_path):
 
         # 3) lab_id는 반복문 전체에서 항상 체크
         if str(row.get("Unnamed: 2", "")).strip() == "처방번호":
-            lab_id = clean_value(row.get("종류"))
+            lab_id = clean_value(row.get("Unnamed: 6"))
+            if lab_id is not None:
+                lab_id = lab_id.replace(" ", "")
         if str(row.get("Unnamed: 2", "")).strip() == "물성정보":
-            lab_info = clean_value(row.get("종류"))
+            lab_info = clean_value(row.get("Unnamed: 6"))
 
         # 4) 실험정보 추출
         if not experiment_info_start and (str(row.get('Unnamed: 0', '')).strip() == '시험코드'):
@@ -76,7 +96,7 @@ def refine_json(input_path, output_path):
             item = clean_value(row.get('Unnamed: 1'))
             period = clean_value(row.get('Unnamed: 4'))
             check = clean_value(row.get('Unnamed: 5'))
-            standard = clean_value(row.get('종류'))
+            standard = clean_value(row.get('Unnamed: 6'))
             result = clean_value(row.get('Unnamed: 12')) or clean_value(row.get('립밤(튜브)'))
             # 시험코드가 None이 아니고, 실제 데이터가 있는 경우만 저장
 
@@ -111,8 +131,79 @@ def refine_json(input_path, output_path):
             if special_notes_header is not None and special_notes_header != "-":
                 special_notes[special_notes_header] = special_notes_content
 
+        # 8) 기타 정보들 추출
+        if str(row.get('Unnamed: 0', '')).strip().startswith('Test No'):
+            test_no = clean_value(row.get('Unnamed: 0'))
+            if test_no:
+                test_no = test_no.replace("Test No : ", "")
+
+        if str(row.get('Unnamed: 0', '')).strip() == '시험일자':
+            test_date = clean_value(row.get('Unnamed: 2'))
+
+        if str(row.get('Unnamed: 0', '')).strip() == '판정예정일자':
+            expected_date = clean_value(row.get('Unnamed: 2'))
+
+        if str(row.get('Unnamed: 0', '')).strip() == '제품명':
+            product_name = clean_value(row.get('Unnamed: 2'))
+
+        if str(row.get('Unnamed: 0', '')).strip() == '고객사명':
+            customer = clean_value(row.get('Unnamed: 2'))
+
+        if str(row.get('Unnamed: 6', '')).strip() == '개발담당자':
+            developer = clean_value(row.get('Unnamed: 7'))
+        elif str(row.get('Unnamed: 8', '')).strip() == '개발담당자':
+            developer = clean_value(row.get('Unnamed: 11'))
+
+
+        if str(row.get('Unnamed: 6', '')).strip() == '시험의뢰자':
+            requester = clean_value(row.get('Unnamed: 7'))
+        elif str(row.get('Unnamed: 8', '')).strip() == '시험의뢰자':
+            requester = clean_value(row.get('Unnamed: 11'))
+
+        if str(row.get('Unnamed: 6', '')).strip() == '시험의뢰차수':
+            test_count = clean_value(row.get('Unnamed: 7'))
+        elif str(row.get('Unnamed: 8', '')).strip() == '시험의뢰차수':
+            test_count = clean_value(row.get('Unnamed: 11'))
+
+        if str(row.get('Unnamed: 6', '')).strip() == '시험의뢰수량':
+            test_quantity = clean_value(row.get('Unnamed: 7'))
+        elif str(row.get('Unnamed: 8', '')).strip() == '시험의뢰수량':
+            test_quantity = clean_value(row.get('Unnamed: 11'))
+
+
+        file_name = os.path.basename(input_path).replace('.json', '_refined.json')
+
+        if str(row.get('Unnamed: 6', '')).strip() == '결재' or str(row.get('Unnamed: 7', '')).strip() == '결재':
+            approval_info_start = True
+            continue
+        if approval_info_start:
+            writer = clean_value(row.get('Unnamed: 7')) or clean_value(row.get('Unnamed: 8'))
+            reviewer = clean_value(row.get('Unnamed: 9')) or clean_value(row.get('Unnamed: 10'))
+            approver = clean_value(row.get('Unnamed: 11')) or clean_value(row.get('Unnamed: 12'))
+            if writer:
+                writer = writer.replace(" ", "").replace("　", "")
+            if reviewer:
+                reviewer = reviewer.replace(" ", "").replace("　", "")
+            if approver:
+                approver = approver.replace(" ", "").replace("　", "")
+            approval_info_start = False
+
+
     # packing_info 리스트를 'packing_info'라는 상위 키로 감싸서 json으로 저장
     result = {
+        'file_name': file_name,
+        'test_no': test_no,
+        'product_name': product_name,
+        'customer': customer,
+        'developer': developer,
+        'requester': requester,
+        'test_count': test_count,
+        'test_quantity': test_quantity,
+        'test_date': test_date,
+        'expected_date': expected_date,
+        'writer': writer,
+        'reviewer': reviewer,
+        'approver': approver,
         'packing_info': packing_info,
         'lab_id': lab_id,
         'lab_info': lab_info,
