@@ -97,7 +97,7 @@ def refine_json(input_path, output_path):
             period = clean_value(row.get('Unnamed: 4'))
             check = clean_value(row.get('Unnamed: 5'))
             standard = clean_value(row.get('Unnamed: 6'))
-            result = clean_value(row.get('Unnamed: 12')) or clean_value(row.get('립밤(튜브)'))
+            result = clean_value(row.get('Unnamed: 12')) or clean_value(row.get('Unnamed: 11'))
             # 시험코드가 None이 아니고, 실제 데이터가 있는 경우만 저장
 
             if item is not None and item != "-":
