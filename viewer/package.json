@@ -1,0 +1,8 @@
+{
+  "name": "exceljs-web-sample",
+  "version": "1.0.0",
+  "description": "엑셀 뷰어 및 수정/다운로드 샘플",
+  "dependencies": {
+    "exceljs": "^4.4.0"
+  }
+}
