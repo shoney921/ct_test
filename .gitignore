@@ -16,7 +16,9 @@ __pycache__/
 *.pyd
 *.pyw
 *.pyz
-*.pywz
+*.pywz~
 *.pyzw
 
 data/
+
+node_modules/~
