@@ -17,4 +17,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 EXPOSE 8000
-CMD ["uvicorn", "app.main:app", "--reload"]
+#CMD ["uvicorn", "app.main:app", "--reload"]
+CMD ["python", "main.py"]
