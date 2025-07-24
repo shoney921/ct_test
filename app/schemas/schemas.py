@@ -61,6 +61,4 @@ class GenerateRequest(BaseModel):
     additional_prompt: str
 
 class GenerateResponse(BaseModel):
-    status: str
-    file_name: str
-    special_notes: Dict[str, str]
+    special_notes: List[SpecialNote]
