@@ -2,39 +2,6 @@ from pydantic import BaseModel
 from typing import List, Dict
 
 # 1. /api/search
-class PackageInfo(BaseModel):
-    type: str
-    material: str
-    detail: str
-    manufacturer: str
-
-class SearchRequest(BaseModel):
-    packages: List[PackageInfo]
-    labId: str
-    specialNote: str
-
-class SearchResult(BaseModel):
-    documentId: str
-    id: str
-    fileName: str
-    packageInfo: List[PackageInfo]
-    summary: str
-
-class SearchResponse(BaseModel):
-    results: List[SearchResult]
-    total: int
-
-# 2. /api/generate
-class GenerateRequest(BaseModel):
-    documentIds: List[str]
-    additionalPrompt: str
-
-class GenerateResponse(BaseModel):
-    status: str
-    fileName: str
-    special_notes: Dict[str, str]
-
-# 3. /api/document
 class PackingInfo(BaseModel):
     type: str
     material: str
@@ -49,10 +16,14 @@ class ExperimentInfo(BaseModel):
     standard: str
     result: str
 
-class DocumentRequest(BaseModel):
-    documentId: str
+class SearchRequest(BaseModel):
+    packages: List[PackingInfo]
+    labId: str
+    specialNote: str
 
-class DocumentResponse(BaseModel):
+class Document(BaseModel):
+    documentId: str
+    summary: str
     file_name: str
     test_no: str
     product_name: str
@@ -71,12 +42,19 @@ class DocumentResponse(BaseModel):
     lab_info: str
     experiment_info: List[ExperimentInfo]
     special_notes: Dict[str, str]
-
-# 4. /api/download
-class DownloadRequest(BaseModel):
-    documentId: str
-
-class DownloadResponse(BaseModel):
     downloadUrl: str
+
+class SearchResponse(BaseModel):
+    results: List[Document]
+    total: int
+
+
+# 2. /api/generate
+class GenerateRequest(BaseModel):
+    documentIds: List[str]
+    additionalPrompt: str
+
+class GenerateResponse(BaseModel):
+    status: str
     fileName: str
-    status: str 
+    special_notes: Dict[str, str]
