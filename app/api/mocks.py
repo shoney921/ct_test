@@ -34,6 +34,7 @@ async def search(request: SearchRequest):
                 ],
                 lab_id="GB1915-DAI",
                 lab_info="초록색 무점도 액상\n비중 1.002 - 1.017",
+                optimum_capacity="10",
                 experiment_info=[
                     ExperimentInfo(code="TMM005", item="내내압", period="1일", check="-", standard="원형 10Kg/㎠, 타원 8Kg/㎠, 사각 5Kg/㎠", result="-"),
                     ExperimentInfo(code="TMM306", item="분사각", period="1일", check="-", standard="분사각 35도 이하: 좁음(Narrow)\n분사각 45도 ± 10도: 보통(Normal)\n분사각 55도 이상: 넓음(Wide)", result="-")
@@ -68,6 +69,7 @@ async def search(request: SearchRequest):
                 ],
                 lab_id="GB1916-LGH",
                 lab_info="흰색 크림상\n비중 0.998 - 1.012",
+                optimum_capacity="10ml",
                 experiment_info=[
                     ExperimentInfo(code="TMM202", item="낙하", period="1일", check="O", standard="1.2m 높이에서 낙하시 파손없음", result="적합"),
                     ExperimentInfo(code="TMM105", item="토출량", period="1일", check="O", standard="2.5g ± 0.5g/회", result="적합")
