@@ -1,8 +1,8 @@
 from fastapi import APIRouter
-from app.schemas.schemas import (
-    SearchRequest, SearchResponse,
-    SpecialNote, GenerateRequest, GenerateResponse,
-    PackingInfo, ExperimentInfo, Document
+from app.schemas.api.search import SearchRequest, SearchResponse
+from app.schemas.api.generate import GenerateRequest, GenerateResponse
+from app.schemas.common import (
+    SpecialNote, PackingInfo, ExperimentInfo, Document
 )
 
 router = APIRouter(prefix="/api", tags=["document"])

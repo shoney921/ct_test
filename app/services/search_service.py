@@ -1,27 +1,6 @@
-from elasticsearch import Elasticsearch
-from dotenv import load_dotenv
-import os
-import json
-import warnings
-import urllib3
+from app.elasticsearch.client import get_es_client
 
-# SSL 경고 억제
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
-# .env 파일에서 환경변수 로드
-load_dotenv()
-
-ELASTICSEARCH_HOST = os.getenv("ELASTICSEARCH_HOST")
-ELASTICSEARCH_USER = os.getenv("ELASTICSEARCH_USER")
-ELASTICSEARCH_PASSWORD = os.getenv("ELASTICSEARCH_PASSWORD")
-
-# 엘라스틱서치 클라이언트 생성 (ID/PW 인증)
-es = Elasticsearch(
-    ELASTICSEARCH_HOST,
-    basic_auth=(ELASTICSEARCH_USER, ELASTICSEARCH_PASSWORD),
-    verify_certs=False,
-    ssl_show_warn=False  # SSL 경고 억제
-)
+es = get_es_client()
 
 def create_index_with_mapping(index_name: str):
     """인덱스 생성 및 매핑 설정"""

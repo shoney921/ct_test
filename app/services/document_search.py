@@ -1,123 +1,8 @@
-from elasticsearch import Elasticsearch
-from dotenv import load_dotenv
-import os
+from app.elasticsearch.client import get_es_client
 import json
-import warnings
-import urllib3
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 
-# SSL 경고 억제
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
-# .env 파일에서 환경변수 로드
-load_dotenv()
-
-ELASTICSEARCH_HOST = os.getenv("ELASTICSEARCH_HOST")
-ELASTICSEARCH_USER = os.getenv("ELASTICSEARCH_USER")
-ELASTICSEARCH_PASSWORD = os.getenv("ELASTICSEARCH_PASSWORD")
-
-# 엘라스틱서치 클라이언트 생성 (ID/PW 인증)
-es = Elasticsearch(
-    ELASTICSEARCH_HOST,
-    basic_auth=(ELASTICSEARCH_USER, ELASTICSEARCH_PASSWORD),
-    verify_certs=False,
-    ssl_show_warn=False  # SSL 경고 억제
-)
-
-def create_ct_document_index_with_mapping(index_name: str):
-    """CT 문서 검색을 위한 인덱스 생성 및 매핑 설정"""
-    mapping = {
-        "mappings": {
-            "properties": {
-                # 기본 정보
-                "file_name": {"type": "text", "analyzer": "standard"},
-                "test_no": {"type": "keyword"},
-                "product_name": {"type": "text", "analyzer": "standard"},
-                "customer": {"type": "keyword"},
-                "developer": {"type": "keyword"},
-                "requester": {"type": "keyword"},
-                "test_count": {"type": "keyword"},
-                "test_quantity": {"type": "keyword"},
-                "test_date": {"type": "date"},
-                "expected_date": {"type": "date"},
-                "writer": {"type": "keyword"},
-                "reviewer": {"type": "keyword"},
-                "approver": {"type": "keyword"},
-                
-                # 실험실 정보
-                "lab_id": {"type": "keyword"},
-                "lab_info": {"type": "text", "analyzer": "standard"},
-                
-                # 포장 정보 (nested object)
-                "packing_info": {
-                    "type": "nested",
-                    "properties": {
-                        "type": {"type": "keyword"},
-                        "material": {"type": "keyword"},
-                        "spec": {"type": "text", "analyzer": "standard"},
-                        "company": {"type": "keyword"}
-                    }
-                },
-                
-                # 실험 정보 (nested object)
-                "experiment_info": {
-                    "type": "nested",
-                    "properties": {
-                        "code": {"type": "keyword"},
-                        "item": {"type": "text", "analyzer": "standard"},
-                        "period": {"type": "keyword"},
-                        "check": {"type": "keyword"},
-                        "standard": {"type": "text", "analyzer": "standard"},
-                        "result": {"type": "text", "analyzer": "standard"}
-                    }
-                },
-                
-                # 특별 참고사항 (nested object)
-                "special_notes": {
-                    "type": "nested",
-                    "properties": {
-                        "General": {"type": "text", "analyzer": "standard"},
-                        "Package": {"type": "text", "analyzer": "standard"},
-                        "Bulk": {"type": "text", "analyzer": "standard"},
-                        "Productivity": {"type": "text", "analyzer": "standard"}
-                    }
-                },
-                
-                # 검색을 위한 통합 텍스트 필드
-                "search_text": {"type": "text", "analyzer": "standard"},
-                
-                # 메타데이터
-                "created_at": {"type": "date"},
-                "updated_at": {"type": "date"},
-                "tags": {"type": "keyword"},
-                "status": {"type": "keyword"}
-            }
-        },
-        "settings": {
-            "analysis": {
-                "analyzer": {
-                    "korean_analyzer": {
-                        "type": "custom",
-                        "tokenizer": "standard",
-                        "filter": ["lowercase", "stop"]
-                    }
-                }
-            }
-        }
-    }
-    
-    try:
-        # 인덱스가 존재하면 삭제
-        if es.indices.exists(index=index_name):
-            es.indices.delete(index=index_name)
-        
-        # 새 인덱스 생성
-        es.indices.create(index=index_name, body=mapping)
-        print(f"CT 문서 인덱스 '{index_name}' 생성 완료")
-        return True
-    except Exception as e:
-        print(f"인덱스 생성 오류: {str(e)}")
-        return False
+es = get_es_client()
 
 def process_ct_document_data(raw_data: Dict[str, Any]) -> Dict[str, Any]:
     """CT 문서 데이터를 엘라스틱서치에 적합한 형태로 전처리"""
@@ -570,62 +455,56 @@ if __name__ == "__main__":
     print("=== CT 문서 검색 시스템 테스트 ===\n")
     
     # 1. 인덱스 생성
-    print("1. CT 문서 인덱스 생성 중...")
-    if create_ct_document_index_with_mapping(index_name):
-        print("CT 문서 인덱스 생성 완료!")
+    # print("1. CT 문서 인덱스 생성 중...")
+    # if create_ct_document_index_with_mapping(es, index_name):
+    #     print("CT 문서 인덱스 생성 완료!")
         
-        # 2. JSON 파일들 로드 및 인덱싱
-        print("\n2. JSON 파일 로드 및 인덱싱 중...")
-        refine_directory = "data/refine"
-        success_count, error_count = load_and_index_ct_documents(index_name, refine_directory)
+    #     # 2. JSON 파일들 로드 및 인덱싱
+    #     print("\n2. JSON 파일 로드 및 인덱싱 중...")
+    #     refine_directory = "data/refine"
+    #     success_count, error_count = load_and_index_ct_documents(index_name, refine_directory)
         
-        if success_count > 0:
-            print(f"\n인덱싱 완료: 성공 {success_count}개, 실패 {error_count}개")
+    
+    # 3. 검색 테스트
+    print("\n3. 검색 기능 테스트 시작...")
+    
+    # 제품명 검색 테스트
+    # print("\n--- 제품명 검색 테스트 ---")
+    # result = search_ct_documents_by_product_name(index_name, "Lip")
+    # print_ct_search_results(result, "Lip 제품 검색")
+    
+    # # 고객사 검색 테스트
+    # print("\n--- 고객사 검색 테스트 ---")
+    # result = search_ct_documents_by_customer(index_name, "Interstory")
+    # print_ct_search_results(result, "Interstory 고객사 검색")
+    
+    # # 전체 텍스트 검색 테스트
+    # print("\n--- 전체 텍스트 검색 테스트 ---")
+    # result = full_text_search_ct_documents(index_name, "펌핑 테스트")
+    # print_ct_search_results(result, "펌핑 테스트 검색")
+    
+    # # 재질 검색 테스트
+    # print("\n--- 재질 검색 테스트 ---")
+    # result = search_ct_documents_by_material(index_name, "AS")
+    # print_ct_search_results(result, "AS 재질 검색")
+    
+    # # 테스트 코드 검색 테스트
+    # print("\n--- 테스트 코드 검색 테스트 ---")
+    # result = search_ct_documents_by_test_code(index_name, "TMM202")
+    # print_ct_search_results(result, "TMM202 테스트 코드 검색")
+    
+    # 고급 검색 테스트
+    print("\n--- 고급 검색 테스트 ---")
+    search_params = {
+        # "product_name": "Lip",
+        # "customer": "Interstory",
+        "search_text": "물광"
+    }
+    result = advanced_search_ct_documents(index_name, search_params)
+    print_ct_search_results(result, "고급 검색 (Lip + Interstory + 펌핑)")
+    
+    # # 통계 조회 테스트
+    # print("\n--- 통계 조회 테스트 ---")
+    # stats_result = get_ct_document_statistics(index_name)
+    # print_ct_statistics(stats_result)
             
-            # 3. 검색 테스트
-            print("\n3. 검색 기능 테스트 시작...")
-            
-            # 제품명 검색 테스트
-            print("\n--- 제품명 검색 테스트 ---")
-            result = search_ct_documents_by_product_name(index_name, "Lip")
-            print_ct_search_results(result, "Lip 제품 검색")
-            
-            # 고객사 검색 테스트
-            print("\n--- 고객사 검색 테스트 ---")
-            result = search_ct_documents_by_customer(index_name, "Interstory")
-            print_ct_search_results(result, "Interstory 고객사 검색")
-            
-            # 전체 텍스트 검색 테스트
-            print("\n--- 전체 텍스트 검색 테스트 ---")
-            result = full_text_search_ct_documents(index_name, "펌핑 테스트")
-            print_ct_search_results(result, "펌핑 테스트 검색")
-            
-            # 재질 검색 테스트
-            print("\n--- 재질 검색 테스트 ---")
-            result = search_ct_documents_by_material(index_name, "AS")
-            print_ct_search_results(result, "AS 재질 검색")
-            
-            # 테스트 코드 검색 테스트
-            print("\n--- 테스트 코드 검색 테스트 ---")
-            result = search_ct_documents_by_test_code(index_name, "TMM202")
-            print_ct_search_results(result, "TMM202 테스트 코드 검색")
-            
-            # 고급 검색 테스트
-            print("\n--- 고급 검색 테스트 ---")
-            search_params = {
-                "product_name": "Lip",
-                "customer": "Interstory",
-                "search_text": "펌핑"
-            }
-            result = advanced_search_ct_documents(index_name, search_params)
-            print_ct_search_results(result, "고급 검색 (Lip + Interstory + 펌핑)")
-            
-            # 통계 조회 테스트
-            print("\n--- 통계 조회 테스트 ---")
-            stats_result = get_ct_document_statistics(index_name)
-            print_ct_statistics(stats_result)
-            
-        else:
-            print("인덱싱에 실패했습니다.")
-    else:
-        print("CT 문서 인덱스 생성 실패!")

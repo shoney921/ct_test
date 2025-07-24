@@ -1,7 +1,6 @@
 from pydantic import BaseModel
 from typing import List, Dict
 
-# 1. /api/search
 class PackingInfo(BaseModel):
     type: str
     material: str
@@ -15,13 +14,6 @@ class ExperimentInfo(BaseModel):
     check: str
     standard: str
     result: str
-
-class SearchRequest(BaseModel):
-    packages: List[PackingInfo]
-    lab_id: str
-    lab_info: str
-    optimum_capacity: str
-    special_note: str
 
 class SpecialNote(BaseModel):
     key: str
@@ -51,14 +43,3 @@ class Document(BaseModel):
     special_notes: List[SpecialNote]
     download_url: str
 
-class SearchResponse(BaseModel):
-    results: List[Document]
-    total: int
-
-# 2. /api/generate
-class GenerateRequest(BaseModel):
-    document_ids: List[str]
-    additional_prompt: str
-
-class GenerateResponse(BaseModel):
-    special_notes: List[SpecialNote]
