@@ -406,6 +406,99 @@ def wildcard_search(index_name: str, field: str, pattern: str):
         print(f"와일드카드 검색 오류: {str(e)}")
         return None
 
+def hybrid_search(index_name: str, text: str, boost_text=1.0, boost_semantic=2.0):
+    """하이브리드 검색 (텍스트 검색 + 의미 기반 검색)"""
+    query = {
+        "query": {
+            "bool": {
+                "should": [
+                    {
+                        "multi_match": {
+                            "query": text,
+                            "fields": ["name^2", "skills^1.5", "description"],
+                            "type": "best_fields",
+                            "boost": boost_text
+                        }
+                    },
+                    {
+                        "match": {
+                            "description": {
+                                "query": text,
+                                "operator": "or",
+                                "minimum_should_match": "60%",
+                                "boost": boost_semantic
+                            }
+                        }
+                    }
+                ],
+                "minimum_should_match": 1
+            }
+        }
+    }
+    
+    try:
+        response = es.search(index=index_name, body=query)
+        return response
+    except Exception as e:
+        print(f"하이브리드 검색 오류: {str(e)}")
+        return None
+
+def advanced_hybrid_search(index_name: str, text: str, filters=None):
+    """고급 하이브리드 검색 (필터링 포함)"""
+    query = {
+        "query": {
+            "bool": {
+                "must": [
+                    {
+                        "bool": {
+                            "should": [
+                                {
+                                    "multi_match": {
+                                        "query": text,
+                                        "fields": ["name^3", "skills^2", "description^1.5", "tags^1"],
+                                        "type": "best_fields",
+                                        "fuzziness": "AUTO"
+                                    }
+                                },
+                                {
+                                    "match": {
+                                        "description": {
+                                            "query": text,
+                                            "operator": "or",
+                                            "minimum_should_match": "50%"
+                                        }
+                                    }
+                                }
+                            ],
+                            "minimum_should_match": 1
+                        }
+                    }
+                ]
+            }
+        },
+        "highlight": {
+            "fields": {
+                "name": {},
+                "skills": {},
+                "description": {
+                    "fragment_size": 150,
+                    "number_of_fragments": 2
+                }
+            }
+        }
+    }
+    
+    # 필터 추가
+    if filters:
+        query["query"]["bool"]["filter"] = filters
+    
+    try:
+        response = es.search(index=index_name, body=query)
+        return response
+    except Exception as e:
+        print(f"고급 하이브리드 검색 오류: {str(e)}")
+        return None
+
 def print_search_results(response, search_type: str):
     """검색 결과 출력"""
     if not response:
@@ -425,6 +518,40 @@ def print_search_results(response, search_type: str):
         print(f"급여: {source.get('salary', 'N/A')}")
         print(f"기술: {source.get('skills', 'N/A')}")
         print(f"설명: {source.get('description', 'N/A')[:100]}...")
+        
+        # 하이라이트 결과 출력
+        if 'highlight' in hit:
+            print("하이라이트:")
+            for field, highlights in hit['highlight'].items():
+                print(f"  {field}: {' ... '.join(highlights)}")
+
+def print_hybrid_search_results(response, search_type: str):
+    """하이브리드 검색 결과 출력 (더 상세한 정보)"""
+    if not response:
+        print(f"{search_type} 검색 결과 없음")
+        return
+    
+    print(f"\n=== {search_type} 검색 결과 ===")
+    print(f"총 검색 결과: {response['hits']['total']['value']}개")
+    
+    for hit in response['hits']['hits']:
+        source = hit['_source']
+        score = hit['_score']
+        print(f"\n문서 ID: {hit['_id']} (점수: {score:.2f})")
+        print(f"이름: {source.get('name', 'N/A')}")
+        print(f"부서: {source.get('department', 'N/A')}")
+        print(f"나이: {source.get('age', 'N/A')}")
+        print(f"급여: {source.get('salary', 'N/A')}")
+        print(f"기술: {source.get('skills', 'N/A')}")
+        print(f"설명: {source.get('description', 'N/A')[:150]}...")
+        
+        # 하이라이트 결과 출력
+        if 'highlight' in hit:
+            print("🔍 하이라이트된 매칭 부분:")
+            for field, highlights in hit['highlight'].items():
+                print(f"  📝 {field}: {' ... '.join(highlights)}")
+        
+        print("-" * 80)
 
 def print_aggregation_results(response, search_type: str):
     """집계 결과 출력"""
@@ -537,6 +664,54 @@ if __name__ == "__main__":
         # print("\n--- 와일드카드 검색 테스트 ---")
         # result = wildcard_search(index_name, "email", "*@company.com")
         # print_search_results(result, "회사 이메일 와일드카드 검색")
+        
+        # 하이브리드 검색 테스트
+        print("\n--- 하이브리드 검색 테스트 ---")
+        result = hybrid_search(index_name, "개발자 경험")
+        print_hybrid_search_results(result, "개발자 경험 하이브리드 검색")
+
+        result = hybrid_search(index_name, "사용자 경험", boost_text=1.5, boost_semantic=1.0)
+        print_hybrid_search_results(result, "사용자 경험 하이브리드 검색 (Boosted)")
+
+        result = advanced_hybrid_search(index_name, "개발자 경험")
+        print_hybrid_search_results(result, "개발자 경험 고급 하이브리드 검색")
+        
+        # 추가 하이브리드 검색 테스트
+        print("\n--- 추가 하이브리드 검색 테스트 ---")
+        
+        # Python 관련 하이브리드 검색
+        result = hybrid_search(index_name, "Python 개발")
+        print_hybrid_search_results(result, "Python 개발 하이브리드 검색")
+        
+        # 고객 관련 하이브리드 검색
+        result = hybrid_search(index_name, "고객 서비스")
+        print_hybrid_search_results(result, "고객 서비스 하이브리드 검색")
+        
+        # 보안 관련 하이브리드 검색
+        result = hybrid_search(index_name, "보안 시스템")
+        print_hybrid_search_results(result, "보안 시스템 하이브리드 검색")
+        
+        # 데이터 관련 하이브리드 검색
+        result = hybrid_search(index_name, "데이터 분석")
+        print_hybrid_search_results(result, "데이터 분석 하이브리드 검색")
+        
+        # 필터링이 포함된 고급 하이브리드 검색
+        print("\n--- 필터링 포함 고급 하이브리드 검색 ---")
+        
+        # 개발팀에서만 검색
+        dev_filter = [{"term": {"department": "개발팀"}}]
+        result = advanced_hybrid_search(index_name, "개발 경험", filters=dev_filter)
+        print_hybrid_search_results(result, "개발팀 내 개발 경험 검색")
+        
+        # 30세 이상에서만 검색
+        age_filter = [{"range": {"age": {"gte": 30}}}]
+        result = advanced_hybrid_search(index_name, "전문성", filters=age_filter)
+        print_hybrid_search_results(result, "30세 이상 전문성 검색")
+        
+        # 급여 50,000 이상에서만 검색
+        salary_filter = [{"range": {"salary": {"gte": 50000}}}]
+        result = advanced_hybrid_search(index_name, "시니어", filters=salary_filter)
+        print_hybrid_search_results(result, "고급여 시니어 검색")
         
     else:
         print("인덱스 생성 실패!")
