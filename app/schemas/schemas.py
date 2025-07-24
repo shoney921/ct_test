@@ -18,11 +18,11 @@ class ExperimentInfo(BaseModel):
 
 class SearchRequest(BaseModel):
     packages: List[PackingInfo]
-    labId: str
-    specialNote: str
+    lab_id: str
+    special_note: str
 
 class Document(BaseModel):
-    documentId: str
+    document_id: str
     summary: str
     file_name: str
     test_no: str
@@ -42,7 +42,7 @@ class Document(BaseModel):
     lab_info: str
     experiment_info: List[ExperimentInfo]
     special_notes: Dict[str, str]
-    downloadUrl: str
+    download_url: str
 
 class SearchResponse(BaseModel):
     results: List[Document]
@@ -51,10 +51,10 @@ class SearchResponse(BaseModel):
 
 # 2. /api/generate
 class GenerateRequest(BaseModel):
-    documentIds: List[str]
-    additionalPrompt: str
+    document_ids: List[str]
+    additional_prompt: str
 
 class GenerateResponse(BaseModel):
     status: str
-    fileName: str
+    file_name: str
     special_notes: Dict[str, str]

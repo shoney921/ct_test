@@ -13,7 +13,7 @@ async def search(request: SearchRequest):
     return SearchResponse(
         results=[
             Document(
-                documentId="DOC20250723001",
+                document_id="DOC20250723001",
                 summary="용기별 타입의 특성상 크랙 발생에 대한 안전성 관리가 중요하며...",
                 file_name="[브로우-스크류캡,버진씰]10228 (CKR) 로얄 프레쉬 수딩 토너-V1-CT연구팀-20220513",
                 test_no="내곡2205-10228●",
@@ -44,10 +44,10 @@ async def search(request: SearchRequest):
                     "생산관련": "1. 토크 관련\n   잠금 토크 약 23.14kgf / 풀림 토크 약 21.19kgf",
                     "기타": "특이사항 없음."
                 },
-                downloadUrl="https://example.com/downloads/DOC20250723001.xlsx",
+                download_url="https://example.com/downloads/DOC20250723001.xlsx",
             ),
             Document(
-                documentId="DOC20250723002",
+                document_id="DOC20250723002",
                 summary="용기 내압 테스트 및 낙하 테스트 결과 양호. 기밀성 확보를 위한 관리방안 제시됨",
                 file_name="[튜브-플립캡]10229 (LG) 퓨어 클렌징 폼-V2-CT연구팀-20220514", 
                 test_no="내곡2205-10229●",
@@ -78,7 +78,7 @@ async def search(request: SearchRequest):
                     "생산관련": "1. 충전량 관리\n=>충전기 노즐 직경 12mm 사용\n=>충전 속도 60개/분 권장",
                     "기타": "캡 개폐 시 이물감 없음"
                 },
-                downloadUrl="https://example.com/downloads/DOC20250723002.xlsx",
+                download_url="https://example.com/downloads/DOC20250723002.xlsx",
             )
         ],
         total=2
@@ -88,7 +88,7 @@ async def search(request: SearchRequest):
 async def generate(request: GenerateRequest):
     return GenerateResponse(
         status="success",
-        fileName="CT20240001_성적서_20250723.pdf",
+        file_name="CT20240001_성적서_20250723.pdf",
         special_notes={
             "포장재 특이사항": "1. 기밀 관련 \n=>물로 진공감압테스트 시 기밀 양호하나, 용기 네크 및 캡 나사선 규격 관리 철저 요망.\n=>횡도누액테스트 결과 확인 후 진행 요망.\n\n2. 포장재 규격 관리 철저 요망.\n 1) 용기 바닥 및 배두께 규격 관리 철저 요망.\n 2) 용기 네크 늘어짐 관리 철저 요망.\n   → 미관리 시 적정용량 충전 불가.\n 3) 용기, 캡 체결 시 미세 공차 및 편심, 기울어짐 현상 발생.\n\n3. 불투명 용기사용\n=>투명 용기 사용 시 공기층 및 기포 보일 수 있으며, 일광,형광에 노출되어 내용물 변색, 변취 등 장기 안정성에 취약할 수 있음.\n=>충전 후 발생되는 상단 빈공간(헤드 스페이스) 마스킹 필요.\n=>포장재 생산 시 정전기로 인하여 이물이 용기안쪽에 흡착되어 내용물 충전 후 미세하게 보일 수 있음.\n=>투명 용기 사용 시 발생할 수 있는 특이사항에 대해 자사 품질 개런티 불가.\n\n4. 낙하 등의 외부 충격 발생 시 제품 파손 발생될 수 있으므로 제품 운송(택배) 및 소비자 보관 시 주의 필요.\n\n5. 내용물과 직접적으로 닿는 부분의 부자재에서는 형광증백제 사용불가 (*자재 입고검사에서 형광증백제 검출 시 반출사유)\n=>유통화장품 안전관리 기준에 근거하여 ,형광증백제는 화장품에 사용할 수 없는 원료이며 보관과정 중 포장재로부터 이염되면 안됨.",
             "상용성 특이사항": "1. 토출 관련 \n=>박킹 토출구 내경 2.4파이로 토출감 양호.\n=>버진씰 개봉 시 내압으로 인해 내용물이 소량 튈 수 있음.\n=>내용물 제조 로트 편차, 보관 조건, 소비자 사용 방법에 따라 토출량, 토출감도, 발림성 차이 발생할 수 있음.\n\n2. 기밀 유지를 위해 정립 상태로 제품 이동 및 보관 요망.",
