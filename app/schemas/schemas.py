@@ -19,7 +19,13 @@ class ExperimentInfo(BaseModel):
 class SearchRequest(BaseModel):
     packages: List[PackingInfo]
     lab_id: str
+    lab_info: str
+    optimum_capacity: str
     special_note: str
+
+class SpecialNote(BaseModel):
+    key: str
+    value: str
 
 class Document(BaseModel):
     document_id: str
@@ -40,14 +46,14 @@ class Document(BaseModel):
     packing_info: List[PackingInfo]
     lab_id: str
     lab_info: str
+    optimum_capacity : str
     experiment_info: List[ExperimentInfo]
-    special_notes: Dict[str, str]
+    special_notes: List[SpecialNote]
     download_url: str
 
 class SearchResponse(BaseModel):
     results: List[Document]
     total: int
-
 
 # 2. /api/generate
 class GenerateRequest(BaseModel):
