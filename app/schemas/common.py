@@ -1,11 +1,11 @@
 from pydantic import BaseModel
-from typing import List, Dict
+from typing import List, Optional
 
 class PackingInfo(BaseModel):
     type: str
     material: str
-    spec: str
-    company: str
+    spec: Optional[str] = None
+    company: Optional[str] = None
 
 class ExperimentInfo(BaseModel):
     code: str

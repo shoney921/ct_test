@@ -1,3 +1,4 @@
+from app.schemas.common import PackingInfo
 from app.services.ct_document_search import *
 from app.schemas.api.search import SearchRequest
 
@@ -39,9 +40,22 @@ if __name__ == "__main__":
 
     # get_ct_document_by_packing_info(packing_type="용기", material="PET", company="건동")
 
-    packing_spec_list = [
-        {"type": "용기", "material": "PET", "company": "건동"},
-        {"type": "캡", "material": "PP", "company": "건동"},
-        # {"type": "튜브", "material": "PE", "company": "건동"},
-    ]
-    get_ct_document_by_packing_info_list(packing_spec_list)
+    # packing_spec_list = [
+    #     {"type": "용기", "material": "PET", "company": "건동"},
+    #     {"type": "캡", "material": "PP", "company": "건동"},
+    #     # {"type": "튜브", "material": "PE", "company": "건동"},
+    # ]
+    # get_ct_document_by_packing_info_list(packing_spec_list)
+
+    input = SearchRequest(
+        packages=[
+            PackingInfo(type="용기", material="PET",spec="", company="건동"),
+            PackingInfo(type="캡", material="PP",spec="", company="건동"),
+        ],
+        lab_id="LAB001",
+        lab_info="건동 실험실",
+        optimum_capacity="100ml",
+        special_note="특이사항 없음"
+    )
+
+    get_ct_document(input)
