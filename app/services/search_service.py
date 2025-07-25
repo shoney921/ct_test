@@ -1,4 +1,4 @@
-from app.schemas.common import PackingInfo
+from app.schemas.common import Document, PackingInfo
 from app.services.ct_document_search import *
 from app.schemas.api.search import SearchRequest
 
@@ -8,8 +8,12 @@ def get_ct_document(input: SearchRequest):
         for package in input.packages
     ]
     result = search_ct_documents_by_multiple_packing_sets("ct_documents", packing_spec_list)
-    print(result['hits']['hits'])
-    return result   
+    hits = result['hits']['hits']
+
+    documents = [Document(**hit['_source']) for hit in hits]
+
+    print(documents)
+    return documents
 
 def get_ct_document_by_packing_info(packing_type: str, material: str, spec: str = None, company: str = None):
     result = search_ct_documents_by_packing_info("ct_documents", packing_type, material, spec=spec, company=company)

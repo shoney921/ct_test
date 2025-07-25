@@ -11,10 +11,12 @@ router = APIRouter(prefix="/api", tags=["document"])
 @router.post("/search", response_model=SearchResponse)
 async def search(request: SearchRequest):
 
-    # print(request)
-
-    # if request.packages:
-    #     return get_ct_document(request)
+    if request.packages:
+        documents = get_ct_document(request)
+        return SearchResponse(
+            results=documents,
+            total=len(documents)
+        )
 
     # 요청 바디(request)는 SearchRequest 타입으로 자동 검증됨
     return SearchResponse(
