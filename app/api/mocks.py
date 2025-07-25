@@ -4,11 +4,14 @@ from app.schemas.api.generate import GenerateRequest, GenerateResponse
 from app.schemas.common import (
     SpecialNote, PackingInfo, ExperimentInfo, Document
 )
+from app.services.search_service import get_ct_document
 
 router = APIRouter(prefix="/api", tags=["document"])
 
 @router.post("/search", response_model=SearchResponse)
 async def search(request: SearchRequest):
+    return get_ct_document(request)
+
     # 요청 바디(request)는 SearchRequest 타입으로 자동 검증됨
     return SearchResponse(
         results=[

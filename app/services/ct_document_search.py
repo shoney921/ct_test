@@ -1,5 +1,6 @@
 from app.elasticsearch.client import get_es_client
 from typing import Dict, Any
+import json
 
 es = get_es_client()
 
@@ -16,6 +17,7 @@ def search_ct_documents_by_product_name(index_name: str, product_name: str):
         }
     }
     
+    print(f"[쿼리 로그][제품명 검색]\n{json.dumps(query, ensure_ascii=False, indent=2)}")
     try:
         response = es.search(index=index_name, body=query)
         return response
@@ -33,6 +35,7 @@ def search_ct_documents_by_customer(index_name: str, customer: str):
         }
     }
     
+    print(f"[쿼리 로그][고객사 검색]\n{json.dumps(query, ensure_ascii=False, indent=2)}")
     try:
         response = es.search(index=index_name, body=query)
         return response
@@ -55,6 +58,7 @@ def search_ct_documents_by_test_code(index_name: str, test_code: str):
         }
     }
     
+    print(f"[쿼리 로그][테스트 코드 검색]\n{json.dumps(query, ensure_ascii=False, indent=2)}")
     try:
         response = es.search(index=index_name, body=query)
         return response
@@ -77,6 +81,7 @@ def search_ct_documents_by_material(index_name: str, material: str):
         }
     }
     
+    print(f"[쿼리 로그][재질 검색]\n{json.dumps(query, ensure_ascii=False, indent=2)}")
     try:
         response = es.search(index=index_name, body=query)
         return response
@@ -97,6 +102,7 @@ def search_ct_documents_by_date_range(index_name: str, start_date: str, end_date
         }
     }
     
+    print(f"[쿼리 로그][날짜 범위 검색]\n{json.dumps(query, ensure_ascii=False, indent=2)}")
     try:
         response = es.search(index=index_name, body=query)
         return response
@@ -135,6 +141,7 @@ def full_text_search_ct_documents(index_name: str, search_text: str):
         }
     }
     
+    print(f"[쿼리 로그][전체 텍스트 검색]\n{json.dumps(query, ensure_ascii=False, indent=2)}")
     try:
         response = es.search(index=index_name, body=query)
         return response
@@ -226,6 +233,7 @@ def advanced_search_ct_documents(index_name: str, search_params: Dict[str, Any])
         }
     }
     
+    print(f"[쿼리 로그][고급 검색]\n{json.dumps(query, ensure_ascii=False, indent=2)}")
     try:
         response = es.search(index=index_name, body=query)
         return response
@@ -263,6 +271,7 @@ def get_ct_document_statistics(index_name: str):
         }
     }
     
+    print(f"[쿼리 로그][통계 조회]\n{json.dumps(query, ensure_ascii=False, indent=2)}")
     try:
         response = es.search(index=index_name, body=query)
         return response
@@ -283,12 +292,12 @@ def print_ct_search_results(response, search_type: str):
         source = hit['_source']
         score = hit['_score']
         print(f"\n문서 ID: {hit['_id']} (점수: {score:.2f})")
-        print(f"테스트 번호: {source.get('test_no', 'N/A')}")
         print(f"제품명: {source.get('product_name', 'N/A')}")
         print(f"고객사: {source.get('customer', 'N/A')}")
         print(f"개발자: {source.get('developer', 'N/A')}")
         print(f"테스트 날짜: {source.get('test_date', 'N/A')}")
         print(f"실험실 ID: {source.get('lab_id', 'N/A')}")
+        print(f"포장 정보: {source.get('packing_info', 'N/A')}")
         
         # 하이라이트 결과 출력
         if 'highlight' in hit:
@@ -322,6 +331,136 @@ def print_ct_statistics(response):
         print("\n월별 문서 분포:")
         for bucket in aggs['date_distribution']['buckets']:
             print(f"  {bucket['key_as_string']}: {bucket['doc_count']}개")
+
+def search_ct_documents_by_packing_info(index_name: str, packing_type: str, material: str, spec: str = None, company: str = None):
+    """포장 정보(타입, 재질, 세부사양, 업체)로 CT 문서 검색 (타입, 재질 필수, 세부사양/업체 선택)"""
+    nested_query = {
+        "bool": {
+            "must": [
+                {"term": {"packing_info.type": packing_type}},
+                {"term": {"packing_info.material": material}}
+            ]
+        }
+    }
+    # 세부사양(spec) 조건 추가 (있을 때만)
+    if spec:
+        nested_query["bool"]["must"].append({
+            "match": {"packing_info.spec": spec}
+        })
+    # 포장재업체(company) 조건 추가 (있을 때만)
+    if company:
+        nested_query["bool"]["must"].append({
+            "match": {"packing_info.company": company}
+        })
+
+    query = {
+        "query": {
+            "nested": {
+                "path": "packing_info",
+                "query": nested_query
+            }
+        }
+    }
+    print(f"[쿼리 로그][포장 정보 검색]\n{json.dumps(query, ensure_ascii=False, indent=2)}")
+    try:
+        response = es.search(index=index_name, body=query)
+        return response
+    except Exception as e:
+        print(f"포장 정보 검색 오류: {str(e)}")
+        return None
+    
+def search_ct_documents_by_multiple_packing_sets(index_name: str, packing_sets: list):
+    """
+    여러 포장 정보 세트 중 하나라도 일치하는 CT 문서 검색
+    packing_sets: [
+        {"type": "튜브", "material": "AS", "company": "건동"},
+        {"type": "용기", "material": "PP"}
+    ]
+    """
+    should_nested_queries = []
+    for packing in packing_sets:
+        must_conditions = []
+        if packing.get("type"):
+            must_conditions.append({"term": {"packing_info.type": packing["type"]}})
+        if packing.get("material"):
+            must_conditions.append({"term": {"packing_info.material": packing["material"]}})
+        if packing.get("spec"):
+            must_conditions.append({"match": {"packing_info.spec": packing["spec"]}})
+        if packing.get("company"):
+            must_conditions.append({"match": {"packing_info.company": packing["company"]}})
+        if must_conditions:
+            should_nested_queries.append({
+                "nested": {
+                    "path": "packing_info",
+                    "query": {
+                        "bool": {
+                            "must": must_conditions
+                        }
+                    }
+                }
+            })
+    query = {
+        "query": {
+            "bool": {
+                "should": should_nested_queries,
+                "minimum_should_match": 1
+            }
+        }
+    }
+    print(f"[쿼리 로그][여러 포장 정보 세트 검색]\n{json.dumps(query, ensure_ascii=False, indent=2)}")
+    try:
+        response = es.search(index=index_name, body=query)
+        return response
+    except Exception as e:
+        print(f"여러 포장 정보 세트 검색 오류: {str(e)}")
+        return None
+
+    
+def search_ct_documents_by_multiple_packing_sets(index_name: str, packing_sets: list):
+    """
+    여러 포장 정보 세트 중 하나라도 일치하는 CT 문서 검색
+    packing_sets: [
+        {"type": "튜브", "material": "AS", "company": "건동"},
+        {"type": "용기", "material": "PP"}
+    ]
+    """
+    should_nested_queries = []
+    for packing in packing_sets:
+        must_conditions = []
+        if packing.get("type"):
+            must_conditions.append({"term": {"packing_info.type": packing["type"]}})
+        if packing.get("material"):
+            must_conditions.append({"term": {"packing_info.material": packing["material"]}})
+        if packing.get("spec"):
+            must_conditions.append({"match": {"packing_info.spec": packing["spec"]}})
+        if packing.get("company"):
+            must_conditions.append({"match": {"packing_info.company": packing["company"]}})
+        if must_conditions:
+            should_nested_queries.append({
+                "nested": {
+                    "path": "packing_info",
+                    "query": {
+                        "bool": {
+                            "must": must_conditions
+                        }
+                    }
+                }
+            })
+    query = {
+        "query": {
+            "bool": {
+                "should": should_nested_queries,
+                "minimum_should_match": 1
+            }
+        }
+    }
+    print(f"[쿼리 로그][여러 포장 정보 세트 검색]\n{json.dumps(query, ensure_ascii=False, indent=2)}")
+    try:
+        response = es.search(index=index_name, body=query)
+        return response
+    except Exception as e:
+        print(f"여러 포장 정보 세트 검색 오류: {str(e)}")
+        return None
 
 if __name__ == "__main__":
     index_name = "ct_documents"

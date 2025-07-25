@@ -1,4 +1,4 @@
-from app.services.document_search import advanced_search_ct_documents, print_ct_search_results
+from app.services.ct_document_search import advanced_search_ct_documents, print_ct_search_results
 from app.elasticsearch.client import get_es_client
 from app.elasticsearch.indices.ct_document import create_ct_document_index_with_mapping
 

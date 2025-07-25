@@ -33,10 +33,10 @@ def create_ct_document_index_with_mapping(es: Elasticsearch, index_name: str):
                 "packing_info": {
                     "type": "nested",
                     "properties": {
-                        "type": {"type": "keyword"},
+                        "type": {"type": "text", "analyzer": "standard"},
                         "material": {"type": "keyword"},
                         "spec": {"type": "text", "analyzer": "standard"},
-                        "company": {"type": "keyword"}
+                        "company": {"type": "text", "analyzer": "standard"}
                     }
                 },
                 
