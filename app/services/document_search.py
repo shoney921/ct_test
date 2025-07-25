@@ -1,7 +1,5 @@
 from app.elasticsearch.client import get_es_client
-import json
-from typing import List, Dict, Any
-from app.elasticsearch.indices.ct_document import create_ct_document_index_with_mapping
+from typing import Dict, Any
 
 es = get_es_client()
 
