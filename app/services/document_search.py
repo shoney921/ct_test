@@ -1,6 +1,7 @@
 from app.elasticsearch.client import get_es_client
 import json
 from typing import List, Dict, Any
+from app.elasticsearch.indices.ct_document import create_ct_document_index_with_mapping
 
 es = get_es_client()
 
@@ -455,14 +456,14 @@ if __name__ == "__main__":
     print("=== CT 문서 검색 시스템 테스트 ===\n")
     
     # 1. 인덱스 생성
-    # print("1. CT 문서 인덱스 생성 중...")
-    # if create_ct_document_index_with_mapping(es, index_name):
-    #     print("CT 문서 인덱스 생성 완료!")
+    print("1. CT 문서 인덱스 생성 중...")
+    if create_ct_document_index_with_mapping(es, index_name):
+        print("CT 문서 인덱스 생성 완료!")
         
-    #     # 2. JSON 파일들 로드 및 인덱싱
-    #     print("\n2. JSON 파일 로드 및 인덱싱 중...")
-    #     refine_directory = "data/refine"
-    #     success_count, error_count = load_and_index_ct_documents(index_name, refine_directory)
+        # 2. JSON 파일들 로드 및 인덱싱
+        print("\n2. JSON 파일 로드 및 인덱싱 중...")
+        refine_directory = "data/refine"
+        success_count, error_count = load_and_index_ct_documents(index_name, refine_directory)
         
     
     # 3. 검색 테스트
