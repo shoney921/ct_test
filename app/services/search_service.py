@@ -10,10 +10,19 @@ def get_ct_document(input: SearchRequest):
     result = search_ct_documents_by_multiple_packing_sets("ct_documents", packing_spec_list)
     hits = result['hits']['hits']
 
-    documents = [Document(**hit['_source']) for hit in hits]
+    documents = []
+    for hit in hits:
+        try:
+            doc = Document(**hit['_source'])
+            documents.append(doc)
+        except Exception as e:
+            print("에러 발생 hit:", hit)
+            print("에러 메시지:", e)
 
-    print(documents)
+    for document in documents:
+        print(document.file_name)
     return documents
+
 
 def get_ct_document_by_packing_info(packing_type: str, material: str, spec: str = None, company: str = None):
     result = search_ct_documents_by_packing_info("ct_documents", packing_type, material, spec=spec, company=company)
@@ -60,6 +69,26 @@ if __name__ == "__main__":
         lab_info="건동 실험실",
         optimum_capacity="100ml",
         special_note="특이사항 없음"
+    )
+
+    input = SearchRequest(
+        packages=[
+            PackingInfo(type="", material="",spec="", company="두코"),
+        ],
+        lab_id="",
+        lab_info="",
+        optimum_capacity="",
+        special_note=""
+    )
+
+    input = SearchRequest(
+        packages=[
+            PackingInfo(type="용기", material="PET",spec="", company=""),
+        ],
+        lab_id="",
+        lab_info="",
+        optimum_capacity="",
+        special_note=""
     )
 
     get_ct_document(input)

@@ -8,12 +8,12 @@ class PackingInfo(BaseModel):
     company: Optional[str] = None
 
 class ExperimentInfo(BaseModel):
-    code: str
-    item: str
-    period: str
-    check: str
-    standard: str
-    result: str
+    code: Optional[str] = None
+    item: Optional[str] = None
+    period: Optional[str] = None
+    check: Optional[str] = None
+    standard: Optional[str] = None
+    result: Optional[str] = None
 
 class SpecialNote(BaseModel):
     key: str
