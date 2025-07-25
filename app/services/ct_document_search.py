@@ -4,112 +4,6 @@ import json
 
 es = get_es_client()
 
-def search_ct_documents_by_product_name(index_name: str, product_name: str):
-    """제품명으로 CT 문서 검색"""
-    query = {
-        "query": {
-            "match": {
-                "product_name": {
-                    "query": product_name,
-                    "operator": "or"
-                }
-            }
-        }
-    }
-    
-    print(f"[쿼리 로그][제품명 검색]\n{json.dumps(query, ensure_ascii=False, indent=2)}")
-    try:
-        response = es.search(index=index_name, body=query)
-        return response
-    except Exception as e:
-        print(f"제품명 검색 오류: {str(e)}")
-        return None
-
-def search_ct_documents_by_customer(index_name: str, customer: str):
-    """고객사로 CT 문서 검색"""
-    query = {
-        "query": {
-            "term": {
-                "customer": customer
-            }
-        }
-    }
-    
-    print(f"[쿼리 로그][고객사 검색]\n{json.dumps(query, ensure_ascii=False, indent=2)}")
-    try:
-        response = es.search(index=index_name, body=query)
-        return response
-    except Exception as e:
-        print(f"고객사 검색 오류: {str(e)}")
-        return None
-
-def search_ct_documents_by_test_code(index_name: str, test_code: str):
-    """테스트 코드로 CT 문서 검색"""
-    query = {
-        "query": {
-            "nested": {
-                "path": "experiment_info",
-                "query": {
-                    "term": {
-                        "experiment_info.code": test_code
-                    }
-                }
-            }
-        }
-    }
-    
-    print(f"[쿼리 로그][테스트 코드 검색]\n{json.dumps(query, ensure_ascii=False, indent=2)}")
-    try:
-        response = es.search(index=index_name, body=query)
-        return response
-    except Exception as e:
-        print(f"테스트 코드 검색 오류: {str(e)}")
-        return None
-
-def search_ct_documents_by_material(index_name: str, material: str):
-    """포장 재질로 CT 문서 검색"""
-    query = {
-        "query": {
-            "nested": {
-                "path": "packing_info",
-                "query": {
-                    "match": {
-                        "packing_info.material": material
-                    }
-                }
-            }
-        }
-    }
-    
-    print(f"[쿼리 로그][재질 검색]\n{json.dumps(query, ensure_ascii=False, indent=2)}")
-    try:
-        response = es.search(index=index_name, body=query)
-        return response
-    except Exception as e:
-        print(f"재질 검색 오류: {str(e)}")
-        return None
-
-def search_ct_documents_by_date_range(index_name: str, start_date: str, end_date: str):
-    """날짜 범위로 CT 문서 검색"""
-    query = {
-        "query": {
-            "range": {
-                "test_date": {
-                    "gte": start_date,
-                    "lte": end_date
-                }
-            }
-        }
-    }
-    
-    print(f"[쿼리 로그][날짜 범위 검색]\n{json.dumps(query, ensure_ascii=False, indent=2)}")
-    try:
-        response = es.search(index=index_name, body=query)
-        return response
-    except Exception as e:
-        print(f"날짜 범위 검색 오류: {str(e)}")
-        return None
-
 def full_text_search_ct_documents(index_name: str, search_text: str):
     """전체 텍스트 검색"""
     query = {
@@ -369,13 +263,14 @@ def search_ct_documents_by_packing_info(index_name: str, packing_type: str, mate
         print(f"포장 정보 검색 오류: {str(e)}")
         return None
     
-def search_ct_documents_by_multiple_packing_sets(index_name: str, packing_sets: list):
+def search_ct_documents_by_multiple_packing_sets(index_name: str, packing_sets: list, lab_id: str = None, lab_info: str = None, optimum_capacity: str = None):
     """
-    여러 포장 정보 세트 중 하나라도 일치하는 CT 문서 검색
+    여러 포장 정보 세트 중 하나라도 일치하는 CT 문서 검색 + lab_id로도 검색
     packing_sets: [
         {"type": "튜브", "material": "AS", "company": "건동"},
         {"type": "용기", "material": "PP"}
     ]
+    lab_id: str (optional)
     """
     should_nested_queries = []
     for packing in packing_sets:
@@ -399,59 +294,24 @@ def search_ct_documents_by_multiple_packing_sets(index_name: str, packing_sets: 
                     }
                 }
             })
-    query = {
-        "query": {
-            "bool": {
-                "should": should_nested_queries,
-                "minimum_should_match": 1
-            }
-        }
+    # lab_id 조건 추가
+    must_queries = []
+    if lab_id:
+        must_queries.append({"term": {"lab_id": lab_id}})
+    if lab_info:
+        must_queries.append({"match": {"lab_info": lab_info}})
+    if optimum_capacity:
+        must_queries.append({"match": {"optimum_capacity": optimum_capacity}})
+    # should 조건이 있을 때만 minimum_should_match 추가
+    bool_query = {
+        "must": must_queries
     }
-    print(f"[쿼리 로그][여러 포장 정보 세트 검색]\n{json.dumps(query, ensure_ascii=False, indent=2)}")
-    try:
-        response = es.search(index=index_name, body=query)
-        return response
-    except Exception as e:
-        print(f"여러 포장 정보 세트 검색 오류: {str(e)}")
-        return None
-
-    
-def search_ct_documents_by_multiple_packing_sets(index_name: str, packing_sets: list):
-    """
-    여러 포장 정보 세트 중 하나라도 일치하는 CT 문서 검색
-    packing_sets: [
-        {"type": "튜브", "material": "AS", "company": "건동"},
-        {"type": "용기", "material": "PP"}
-    ]
-    """
-    should_nested_queries = []
-    for packing in packing_sets:
-        must_conditions = []
-        if packing.get("type"):
-            must_conditions.append({"term": {"packing_info.type": packing["type"]}})
-        if packing.get("material"):
-            must_conditions.append({"term": {"packing_info.material": packing["material"]}})
-        if packing.get("spec"):
-            must_conditions.append({"match": {"packing_info.spec": packing["spec"]}})
-        if packing.get("company"):
-            must_conditions.append({"match": {"packing_info.company": packing["company"]}})
-        if must_conditions:
-            should_nested_queries.append({
-                "nested": {
-                    "path": "packing_info",
-                    "query": {
-                        "bool": {
-                            "must": must_conditions
-                        }
-                    }
-                }
-            })
+    if should_nested_queries:
+        bool_query["should"] = should_nested_queries
+        bool_query["minimum_should_match"] = 1
     query = {
         "query": {
-            "bool": {
-                "should": should_nested_queries,
-                "minimum_should_match": 1
-            }
+            "bool": bool_query
         }
     }
     print(f"[쿼리 로그][여러 포장 정보 세트 검색]\n{json.dumps(query, ensure_ascii=False, indent=2)}")
@@ -494,17 +354,30 @@ if __name__ == "__main__":
     # print_ct_search_results(result, "TMM202 테스트 코드 검색")
     
     # 고급 검색 테스트
-    print("\n--- 고급 검색 테스트 ---")
-    search_params = {
-        # "product_name": "Lip",
-        # "customer": "Interstory",
-        "search_text": "물광"
-    }
-    result = advanced_search_ct_documents(index_name, search_params)
-    print_ct_search_results(result, "고급 검색 (Lip + Interstory + 펌핑)")
+    # print("\n--- 고급 검색 테스트 ---")
+    # search_params = {
+    #     # "product_name": "Lip",
+    #     # "customer": "Interstory",
+    #     "search_text": "물광"
+    # }
+    # result = advanced_search_ct_documents(index_name, search_params)
+    # print_ct_search_results(result, "고급 검색 (Lip + Interstory + 펌핑)")
     
     # # 통계 조회 테스트
     # print("\n--- 통계 조회 테스트 ---")
     # stats_result = get_ct_document_statistics(index_name)
     # print_ct_statistics(stats_result)
             
+
+    input_data = {
+        "packages": [
+            {"type": "용기", "material": "PET", "spec": "인젝션브로우", "company": "건동"},
+            {"type": "캡", "material": "PP", "spec": "고무", "company": "건동"}
+        ],
+        "lab_id": "LAB001",
+        "lab_info": "건동 실험실",
+        "optimum_capacity": "100ml"
+    }
+
+    result = search_ct_documents_by_multiple_packing_sets(index_name, input_data['packages'], input_data['lab_id'])
+    # result

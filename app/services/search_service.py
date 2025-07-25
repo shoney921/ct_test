@@ -7,7 +7,7 @@ def get_ct_document(input: SearchRequest):
         {"type": package.type, "material": package.material, "company": package.company}
         for package in input.packages
     ]
-    result = search_ct_documents_by_multiple_packing_sets("ct_documents", packing_spec_list)
+    result = search_ct_documents_by_multiple_packing_sets("ct_documents", packing_spec_list, input.lab_id, input.lab_info, input.optimum_capacity)
     hits = result['hits']['hits']
 
     documents = []
@@ -20,7 +20,9 @@ def get_ct_document(input: SearchRequest):
             print("에러 메시지:", e)
 
     for document in documents:
-        print(document.file_name)
+        print("ㅁ   ", document.file_name)
+        print("    포장재정보 :", document.packing_info)
+        print("-" * 80)
     return documents
 
 
@@ -87,6 +89,26 @@ if __name__ == "__main__":
         ],
         lab_id="",
         lab_info="",
+        optimum_capacity="",
+        special_note=""
+    )
+
+    input = SearchRequest(
+        packages=[
+            PackingInfo(type="", material="",spec="", company="두코"),
+        ],
+        lab_id="WE1532-PLB",
+        lab_info="",
+        optimum_capacity="",
+        special_note=""
+    )
+
+    input = SearchRequest(
+        packages=[
+            PackingInfo(type="", material="",spec="", company="두코"),
+        ],
+        lab_id="",
+        lab_info="불투명",
         optimum_capacity="",
         special_note=""
     )

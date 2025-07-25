@@ -21,7 +21,7 @@ def create_ct_document_index_with_mapping(es: Elasticsearch, index_name: str):
                 "reviewer": {"type": "keyword"},
                 "approver": {"type": "keyword"},
 
-                "optimum_capacity": {"type": "keyword"},
+                "optimum_capacity": {"type": "text", "analyzer": "standard"},
                 "summary": {"type": "text", "analyzer": "standard"},
                 "download_url": {"type": "keyword"},
                 
