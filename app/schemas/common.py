@@ -16,8 +16,8 @@ class ExperimentInfo(BaseModel):
     result: Optional[str] = None
 
 class SpecialNote(BaseModel):
-    key: str
-    value: str
+    key: Optional[str] = None
+    value: Optional[str] = None
 
 class Document(BaseModel):
     document_id: str
