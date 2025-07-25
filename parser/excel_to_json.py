@@ -15,27 +15,13 @@ def excel_to_json(excel_path, json_path):
     try:
         print(f"처리 중: {excel_path}")
         
-        # 여러 엔진을 시도하여 Excel 파일 읽기
-        df = None
-        engines_to_try = ['openpyxl', 'xlrd', 'odf']
-        
-        for engine in engines_to_try:
-            try:
-                print(f"  엔진 '{engine}' 시도 중...")
-                if engine == 'openpyxl':
-                    df = pd.read_excel(excel_path, sheet_name=0, header=None, engine='openpyxl')
-                elif engine == 'xlrd':
-                    df = pd.read_excel(excel_path, sheet_name=0, header=None, engine='xlrd')
-                elif engine == 'odf':
-                    df = pd.read_excel(excel_path, sheet_name=0, header=None, engine='odf')
-                print(f"  엔진 '{engine}'로 성공적으로 읽음")
-                break
-            except Exception as engine_error:
-                print(f"  엔진 '{engine}' 실패: {str(engine_error)}")
-                continue
-        
-        if df is None:
-            raise Exception("모든 엔진으로 파일을 읽을 수 없습니다.")
+        # openpyxl 엔진으로만 Excel 파일 읽기
+        try:
+            df = pd.read_excel(excel_path, sheet_name=0, header=None, engine='openpyxl')
+            print(f"  엔진 'openpyxl'로 성공적으로 읽음")
+        except Exception as engine_error:
+            print(f"  엔진 'openpyxl' 실패: {str(engine_error)}")
+            raise Exception("openpyxl 엔진으로 파일을 읽을 수 없습니다.")
         
         # 컬럼명을 unnamed로 변경
         df.columns = [f'Unnamed: {i}' for i in range(len(df.columns))]

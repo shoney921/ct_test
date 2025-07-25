@@ -6,6 +6,7 @@ def create_ct_document_index_with_mapping(es: Elasticsearch, index_name: str):
         "mappings": {
             "properties": {
                 # 기본 정보
+                "document_id": {"type": "keyword"},
                 "file_name": {"type": "text", "analyzer": "standard"},
                 "test_no": {"type": "keyword"},
                 "product_name": {"type": "text", "analyzer": "standard"},
@@ -19,6 +20,10 @@ def create_ct_document_index_with_mapping(es: Elasticsearch, index_name: str):
                 "writer": {"type": "keyword"},
                 "reviewer": {"type": "keyword"},
                 "approver": {"type": "keyword"},
+
+                "optimum_capacity": {"type": "keyword"},
+                "summary": {"type": "text", "analyzer": "standard"},
+                "download_url": {"type": "keyword"},
                 
                 # 실험실 정보
                 "lab_id": {"type": "keyword"},
@@ -52,10 +57,8 @@ def create_ct_document_index_with_mapping(es: Elasticsearch, index_name: str):
                 "special_notes": {
                     "type": "nested",
                     "properties": {
-                        "General": {"type": "text", "analyzer": "standard"},
-                        "Package": {"type": "text", "analyzer": "standard"},
-                        "Bulk": {"type": "text", "analyzer": "standard"},
-                        "Productivity": {"type": "text", "analyzer": "standard"}
+                        "key": {"type": "text", "analyzer": "standard"},
+                        "value": {"type": "text", "analyzer": "standard"}
                     }
                 },
                 

@@ -90,6 +90,20 @@ def convert_excel_date_to_string(value):
     # 변환 실패 시 원본 반환
     return str_value
 
+def generate_uuid():
+    """
+    UUID를 생성하여 문자열로 반환하는 함수
+    
+    Returns:
+        str: 생성된 UUID 문자열
+    """
+    import uuid
+    # UUID에서 '-' 제거하고 'DOC' 프리픽스 추가
+    uuid_str = str(uuid.uuid4()).upper()
+    uuid_str = uuid_str.replace('-', '')
+    uuid_str = 'DOC' + uuid_str
+    return uuid_str
+
 # 의미있는 정보만 추출하는 함수
 def refine_json(input_path, output_path):
     with open(input_path, 'r', encoding='utf-8') as f:
@@ -196,7 +210,6 @@ def refine_json(input_path, output_path):
             if code == "TMM202" and (item == "Optimum Capacity" or item == "적정용량"):
                 optimum_capacity = result
 
-
         # 6) 특이사항 추출
         if not special_notes_start and str(row.get('Unnamed: 0', '')).strip() in ['시험 특이사항', 'Test Remarks']:
             special_notes_start = True
@@ -255,8 +268,7 @@ def refine_json(input_path, output_path):
         elif str(row.get('Unnamed: 8', '')).strip() in ['시험의뢰수량', 'Quantity for Test']:
             test_quantity = clean_value(row.get('Unnamed: 11'))
 
-
-        file_name = os.path.basename(input_path).replace('.json', '_refined.json')
+        file_name = os.path.basename(input_path).replace('.json', '')
 
         if str(row.get('Unnamed: 6', '')).strip() in ['결재', 'Approval'] or str(row.get('Unnamed: 7', '')).strip() in ['결재', 'Approval']:
             approval_info_start = True
@@ -276,6 +288,8 @@ def refine_json(input_path, output_path):
 
     # packing_info 리스트를 'packing_info'라는 상위 키로 감싸서 json으로 저장
     result = {
+        'document_id': generate_uuid(),
+        'summary': '#### TODO : 추가 llm 로직으로 업데이트 예정',
         'file_name': file_name,
         'test_no': test_no,
         'product_name': product_name,
@@ -294,7 +308,8 @@ def refine_json(input_path, output_path):
         'lab_info': lab_info,
         'optimum_capacity': optimum_capacity,
         'experiment_info': experiment_info,
-        'special_notes': special_notes
+        'special_notes': special_notes,
+        'download_url': '#### TODO : 추가 스토리지 업로드 로직으로 업데이트 예정',
         }
     with open(output_path, 'w', encoding='utf-8') as f:
         json.dump(result, f, ensure_ascii=False, indent=2)
