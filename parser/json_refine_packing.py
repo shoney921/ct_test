@@ -1,5 +1,7 @@
 import os
 import json
+import pandas as pd
+import datetime
 
 INPUT_DIR = os.path.join('data', 'json')
 OUTPUT_DIR = os.path.join('data', 'refine')
@@ -13,6 +15,81 @@ def clean_value(val):
         return None
     return val
 
+
+def convert_excel_date_to_string(value):
+    """
+    다양한 날짜 포맷(문자열, 엑셀 숫자 등)을 YYYY-MM-DD 형식의 문자열로 변환
+    변환 불가 시 원본(str) 반환
+    """
+    import re
+    from dateutil import parser as date_parser
+
+    # 1. NaN, None, 빈 문자열 처리
+    if pd.isna(value) or value is None or str(value).strip() == '':
+        return ''
+
+    # 2. 엑셀 날짜(숫자) 처리
+    try:
+        # 엑셀 날짜는 1900년 1월 1일부터 시작 (1=1900-01-01)
+        if isinstance(value, (int, float)) and value > 1:
+            excel_epoch = datetime.datetime(1899, 12, 30)
+            result_date = excel_epoch + datetime.timedelta(days=float(value))
+            return result_date.strftime('%Y-%m-%d')
+    except Exception:
+        pass
+
+    # 2-1. str 타입이지만 숫자만 있는 경우 엑셀 날짜로 시도
+    str_value = str(value).strip()
+    if str_value.isdigit():
+        num_value = float(str_value)
+        if num_value > 1:
+            try:
+                excel_epoch = datetime.datetime(1899, 12, 30)
+                result_date = excel_epoch + datetime.timedelta(days=num_value)
+                return result_date.strftime('%Y-%m-%d')
+            except Exception:
+                pass
+
+    # 3. 문자열로 들어온 경우 다양한 포맷 시도
+    # 숫자만 있는 8자리(YYYYMMDD) 혹은 6자리(YYMMDD) 등
+    if re.fullmatch(r'\d{8}', str_value):
+        try:
+            return datetime.datetime.strptime(str_value, '%Y%m%d').strftime('%Y-%m-%d')
+        except Exception:
+            pass
+    if re.fullmatch(r'\d{6}', str_value):
+        try:
+            return datetime.datetime.strptime(str_value, '%y%m%d').strftime('%Y-%m-%d')
+        except Exception:
+            pass
+    # 한글 날짜(예: 2024년 6월 1일)
+    m = re.match(r'(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일', str_value)
+    if m:
+        try:
+            y, m_, d = m.groups()
+            return f"{int(y):04d}-{int(m_):02d}-{int(d):02d}"
+        except Exception:
+            pass
+    # 다양한 구분자(., -, /) 처리
+    for fmt in [
+        '%Y-%m-%d', '%Y.%m.%d', '%Y/%m/%d',
+        '%Y-%m-%d %H:%M:%S', '%Y.%m.%d %H:%M:%S', '%Y/%m/%d %H:%M:%S',
+        '%d-%m-%Y', '%d.%m.%Y', '%d/%m/%Y',
+        '%m-%d-%Y', '%m.%d.%Y', '%m/%d/%Y',
+    ]:
+        try:
+            return datetime.datetime.strptime(str_value, fmt).strftime('%Y-%m-%d')
+        except Exception:
+            continue
+    # dateutil 파서로 마지막 시도
+    try:
+        dt = date_parser.parse(str_value, fuzzy=True)
+        return dt.strftime('%Y-%m-%d')
+    except Exception:
+        pass
+    # 변환 실패 시 원본 반환
+    return str_value
+
 # 의미있는 정보만 추출하는 함수
 def refine_json(input_path, output_path):
     with open(input_path, 'r', encoding='utf-8') as f:
@@ -25,7 +102,7 @@ def refine_json(input_path, output_path):
     experiment_info = []
     experiment_info_start = False
     prev_code = None
-    special_notes = {}
+    special_notes = []
     special_notes_start = False
 
     # 결재자 정보 추출을 위한 불린 변수들 초기화
@@ -45,6 +122,7 @@ def refine_json(input_path, output_path):
     test_count = None
     test_quantity = None
     lab_info = None
+    optimum_capacity = None
 
     for row in data:
         # 1) 포장재 정보 구간 제어
@@ -113,6 +191,10 @@ def refine_json(input_path, output_path):
                     'standard': standard,
                     'result': result
                 })
+            
+            # 적정용량 변수 따로 관리하기 위한 코드
+            if code == "TMM202" and (item == "Optimum Capacity" or item == "적정용량"):
+                optimum_capacity = result
 
 
         # 6) 특이사항 추출
@@ -129,7 +211,10 @@ def refine_json(input_path, output_path):
             special_notes_content = clean_value(row.get('Unnamed: 2')) or clean_value(row.get('Unnamed: 1'))
 
             if special_notes_header is not None and special_notes_header != "-":
-                special_notes[special_notes_header] = special_notes_content
+                special_notes.append({
+                    'key': special_notes_header,
+                    'value': special_notes_content
+                })
 
         # 8) 기타 정보들 추출
         if str(row.get('Unnamed: 0', '')).strip().startswith('Test No'):
@@ -199,14 +284,15 @@ def refine_json(input_path, output_path):
         'requester': requester,
         'test_count': test_count,
         'test_quantity': test_quantity,
-        'test_date': test_date,
-        'expected_date': expected_date,
+        'test_date': convert_excel_date_to_string(test_date),
+        'expected_date': convert_excel_date_to_string(expected_date),
         'writer': writer,
         'reviewer': reviewer,
         'approver': approver,
         'packing_info': packing_info,
         'lab_id': lab_id,
         'lab_info': lab_info,
+        'optimum_capacity': optimum_capacity,
         'experiment_info': experiment_info,
         'special_notes': special_notes
         }

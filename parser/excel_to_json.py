@@ -11,25 +11,6 @@ RESULT_DIR = os.path.join('data', 'json')
 def get_excel_files(directory):
     return [f for f in os.listdir(directory) if f.endswith('.xlsx') and not f.startswith('~$')]
 
-def convert_excel_date_to_string(value):
-    """Excel 날짜 숫자를 문자열로 변환"""
-    if pd.isna(value) or value == '':
-        return str(value).strip()
-    
-    try:
-        # 숫자인지 확인
-        if isinstance(value, (int, float)) and value > 1:
-            # Excel 날짜는 1900년 1월 1일부터의 일수
-            # 1은 1900년 1월 1일, 2는 1900년 1월 2일...
-            excel_epoch = datetime.datetime(1900, 1, 1)
-            days = int(value) - 1  # Excel은 1부터 시작하므로 1을 빼줌
-            result_date = excel_epoch + datetime.timedelta(days=days)
-            return result_date.strftime('%Y-%m-%d').strip()
-        else:
-            return str(value).strip()
-    except:
-        return str(value).strip()
-
 def excel_to_json(excel_path, json_path):
     try:
         print(f"처리 중: {excel_path}")
@@ -64,7 +45,7 @@ def excel_to_json(excel_path, json_path):
         for _, row in df.iterrows():
             row_dict = {}
             for col, value in row.items():
-                row_dict[col] = convert_excel_date_to_string(value)
+                row_dict[col] = str(value).strip()
             data.append(row_dict)
         
         # datetime 등 직렬화 불가 객체 처리
