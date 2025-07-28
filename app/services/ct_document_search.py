@@ -331,6 +331,18 @@ def search_ct_documents_by_multiple_packing_sets(
     query = {
         "query": {
             "bool": bool_query
+        },
+        "highlight": {
+            "fields": {
+                "special_notes.value": {
+                    "fragment_size": 200,
+                    "number_of_fragments": 3
+                },
+                "special_notes.key": {
+                    "fragment_size": 100,
+                    "number_of_fragments": 2
+                }
+            }
         }
     }
     print(f"[쿼리 로그][여러 포장 정보 세트 검색]\n{json.dumps(query, ensure_ascii=False, indent=2)}")

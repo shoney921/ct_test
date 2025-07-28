@@ -45,9 +45,16 @@ def get_ct_document(input: SearchRequest):
             print("에러 발생 hit:", hit)
             print("에러 메시지:", e)
 
-    for document in documents:
+    for i, document in enumerate(documents):
         print("ㅁ   ", document.file_name)
         print("    포장재정보 :", document.packing_info)
+        
+        # 하이라이트 정보 출력
+        if i < len(hits) and 'highlight' in hits[i]:
+            print("🔍 하이라이트된 매칭 부분:")
+            for field, highlights in hits[i]['highlight'].items():
+                print(f"  📝 {field}: {' ... '.join(highlights)}")
+        
         print("-" * 80)
     return documents
 
@@ -146,7 +153,7 @@ if __name__ == "__main__":
         lab_id="",
         lab_info="",
         optimum_capacity="",
-        special_note="포장재 입고"
+        special_note="낙하 실패"
     )
 
     get_ct_document(input)
