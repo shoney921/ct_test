@@ -263,7 +263,14 @@ def search_ct_documents_by_packing_info(index_name: str, packing_type: str, mate
         print(f"포장 정보 검색 오류: {str(e)}")
         return None
     
-def search_ct_documents_by_multiple_packing_sets(index_name: str, packing_sets: list, lab_id: str = None, lab_info: str = None, optimum_capacity: str = None):
+def search_ct_documents_by_multiple_packing_sets(
+        index_name: str, 
+        packing_sets: list, 
+        lab_id: str = None, 
+        lab_info: str = None, 
+        optimum_capacity: str = None, 
+        special_note: str = None
+    ):
     """
     여러 포장 정보 세트 중 하나라도 일치하는 CT 문서 검색 + lab_id로도 검색
     packing_sets: [
@@ -302,6 +309,18 @@ def search_ct_documents_by_multiple_packing_sets(index_name: str, packing_sets: 
         must_queries.append({"match": {"lab_info": lab_info}})
     if optimum_capacity:
         must_queries.append({"match": {"optimum_capacity": optimum_capacity}})
+
+    # special_note 조건 추가
+    if special_note:
+        must_queries.append({
+            "nested": {
+                "path": "special_notes",
+                "query": {
+                    "match": {"special_notes.value": special_note}
+                }
+            }
+        })
+
     # should 조건이 있을 때만 minimum_should_match 추가
     bool_query = {
         "must": must_queries

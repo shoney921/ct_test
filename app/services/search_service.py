@@ -26,7 +26,14 @@ def get_ct_document(input: SearchRequest):
     #     print("검색 조건이 없습니다.")
     #     return []
     
-    result = search_ct_documents_by_multiple_packing_sets("ct_documents", packing_spec_list, input.lab_id, input.lab_info, input.optimum_capacity)
+    result = search_ct_documents_by_multiple_packing_sets(
+        "ct_documents", 
+        packing_spec_list, 
+        input.lab_id, 
+        input.lab_info, 
+        input.optimum_capacity, 
+        input.special_note
+    )
     hits = result['hits']['hits']
 
     documents = []
@@ -139,7 +146,7 @@ if __name__ == "__main__":
         lab_id="",
         lab_info="",
         optimum_capacity="",
-        special_note=""
+        special_note="포장재 입고"
     )
 
     get_ct_document(input)
