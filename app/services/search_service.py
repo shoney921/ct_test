@@ -3,10 +3,29 @@ from app.services.ct_document_search import *
 from app.schemas.api.search import SearchRequest
 
 def get_ct_document(input: SearchRequest):
-    packing_spec_list = [
-        {"type": package.type, "material": package.material, "company": package.company}
-        for package in input.packages
-    ]
+    # 빈 값들을 필터링하여 실제 검색 조건만 추출
+    packing_spec_list = []
+    for package in input.packages:
+        packing_spec = {}
+        if package.type and package.type.strip():
+            packing_spec["type"] = package.type
+        if package.material and package.material.strip():
+            packing_spec["material"] = package.material
+        if package.spec and package.spec.strip():
+            packing_spec["spec"] = package.spec
+        if package.company and package.company.strip():
+            packing_spec["company"] = package.company
+        
+        # 최소한 하나의 조건이라도 있으면 추가
+        if packing_spec:
+            packing_spec_list.append(packing_spec)
+    
+    # TODO : 나중에 검색 조건이 없는경우 벨리데이션 조건 붙여야 할 때 붙이기
+    # # 검색 조건이 없으면 빈 결과 반환 
+    # if not packing_spec_list and not input.lab_id and not input.lab_info and not input.optimum_capacity:
+    #     print("검색 조건이 없습니다.")
+    #     return []
+    
     result = search_ct_documents_by_multiple_packing_sets("ct_documents", packing_spec_list, input.lab_id, input.lab_info, input.optimum_capacity)
     hits = result['hits']['hits']
 
@@ -108,7 +127,17 @@ if __name__ == "__main__":
             PackingInfo(type="", material="",spec="", company="두코"),
         ],
         lab_id="",
-        lab_info="불투명",
+        lab_info="",
+        optimum_capacity="",
+        special_note=""
+    )
+
+    input = SearchRequest(
+        packages=[
+            PackingInfo(type="", material="",spec="", company=""),
+        ],
+        lab_id="",
+        lab_info="",
         optimum_capacity="",
         special_note=""
     )
