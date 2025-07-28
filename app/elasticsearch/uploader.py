@@ -9,6 +9,34 @@ def process_ct_document_data(raw_data: Dict[str, Any]) -> Dict[str, Any]:
     """CT 문서 데이터를 엘라스틱서치에 적합한 형태로 전처리"""
     processed_data = raw_data.copy()
     
+    # 날짜 필드 전처리
+    def clean_date_field(date_value):
+        if not date_value or date_value == '' or date_value == '-':
+            return None
+        
+        # 날짜 형식 정리 (예: 2023.02.30 -> 2023-02-28)
+        if isinstance(date_value, str):
+            # 점(.)을 하이픈(-)으로 변경
+            date_value = date_value.replace('.', '-')
+            
+            # 잘못된 날짜 처리 (예: 2023-02-30 -> 2023-02-28)
+            try:
+                from datetime import datetime
+                parsed_date = datetime.strptime(date_value, '%Y-%m-%d')
+                return parsed_date.isoformat()
+            except ValueError:
+                # 잘못된 날짜인 경우 None 반환
+                return None
+        
+        return date_value
+    
+    # 날짜 필드 정리
+    if 'test_date' in processed_data:
+        processed_data['test_date'] = clean_date_field(processed_data['test_date'])
+    
+    if 'expected_date' in processed_data:
+        processed_data['expected_date'] = clean_date_field(processed_data['expected_date'])
+    
     # 검색을 위한 통합 텍스트 필드 생성
     search_text_parts = []
     
