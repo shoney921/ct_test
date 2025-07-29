@@ -58,7 +58,13 @@ def create_ct_document_index_with_mapping(es: Elasticsearch, index_name: str):
                     "type": "nested",
                     "properties": {
                         "key": {"type": "text", "analyzer": "korean_analyzer"},
-                        "value": {"type": "text", "analyzer": "korean_analyzer"}
+                        "value": {"type": "text", "analyzer": "korean_analyzer"},
+                        "embedding": {
+                            "type": "dense_vector",
+                            "dims": 768,
+                            "index": True,
+                            "similarity": "cosine"
+                        }
                     }
                 },
                 

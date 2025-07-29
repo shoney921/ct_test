@@ -2,6 +2,7 @@ from typing import Dict, Any, List
 import json
 from app.elasticsearch.indices.ct_document import create_ct_document_index_with_mapping
 from app.elasticsearch.client import get_es_client
+from app.services.embedding_service import embedding_service
 
 es = get_es_client()
 
@@ -94,6 +95,9 @@ def process_ct_document_data(raw_data: Dict[str, Any]) -> Dict[str, Any]:
         tags.append(f"developer:{raw_data['developer']}")
     
     processed_data['tags'] = tags
+    
+    # special_notes에 임베딩 추가
+    processed_data = embedding_service.add_embeddings_to_document(processed_data)
     
     return processed_data
 

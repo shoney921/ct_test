@@ -1,5 +1,6 @@
 from app.elasticsearch.client import get_es_client
-from typing import Dict, Any
+from app.services.embedding_service import embedding_service
+from typing import Dict, Any, List
 import json
 
 es = get_es_client()
@@ -263,13 +264,160 @@ def search_ct_documents_by_packing_info(index_name: str, packing_type: str, mate
         print(f"포장 정보 검색 오류: {str(e)}")
         return None
     
+def semantic_search_special_notes(index_name: str, query_text: str, threshold: float = 0.7, top_k: int = 10):
+    """special_notes의 의미기반 검색 (Elasticsearch dense_vector 사용)"""
+    try:
+        # 쿼리 텍스트의 임베딩 생성
+        query_embedding = embedding_service.get_embedding(query_text)
+        if not query_embedding:
+            print("쿼리 임베딩 생성 실패")
+            return None
+        
+        print(f"의미기반 검색 시작: '{query_text}' (임계값: {threshold})")
+        
+        # Elasticsearch의 dense_vector 검색 쿼리
+        query = {
+            "query": {
+                "nested": {
+                    "path": "special_notes",
+                    "query": {
+                        "script_score": {
+                            "query": {
+                                "exists": {
+                                    "field": "special_notes.embedding"
+                                }
+                            },
+                            "script": {
+                                "source": "cosineSimilarity(params.query_vector, 'special_notes.embedding') + 1.0",
+                                "params": {
+                                    "query_vector": query_embedding
+                                }
+                            }
+                        }
+                    },
+                    "inner_hits": {
+                        "size": top_k,
+                        "_source": ["special_notes.key", "special_notes.value"]
+                    }
+                }
+            },
+            "size": top_k
+        }
+        
+        print(f"[쿼리 로그][의미기반 검색]\n{json.dumps(query, ensure_ascii=False, indent=2)}")
+        
+        response = es.search(index=index_name, body=query)
+        
+        # 결과 처리
+        formatted_results = []
+        for hit in response['hits']['hits']:
+            source = hit['_source']
+            score = hit['_score']
+            
+            # inner_hits에서 special_notes 결과 추출
+            if 'inner_hits' in hit and 'special_notes' in hit['inner_hits']:
+                for inner_hit in hit['inner_hits']['special_notes']['hits']['hits']:
+                    inner_score = inner_hit['_score']
+                    if inner_score >= threshold:
+                        note = inner_hit['_source']
+                        formatted_results.append({
+                            '_id': hit['_id'],
+                            '_score': inner_score,
+                            '_source': source,
+                            'highlight': {
+                                'special_notes.value': [note['value']],
+                                'special_notes.key': [note.get('key', '')]
+                            }
+                        })
+        
+        print(f"의미기반 검색 완료: {len(formatted_results)}개 결과")
+        
+        return {
+            'hits': {
+                'total': {'value': len(formatted_results)},
+                'hits': formatted_results
+            }
+        }
+        
+    except Exception as e:
+        print(f"의미기반 검색 오류: {str(e)}")
+        return None
+
+def hybrid_search_special_notes(index_name: str, query_text: str, 
+                              text_boost: float = 1.0, semantic_boost: float = 2.0,
+                              threshold: float = 0.7):
+    """하이브리드 검색 (텍스트 검색 + 의미기반 검색)"""
+    # 텍스트 기반 검색
+    text_query = {
+        "query": {
+            "nested": {
+                "path": "special_notes",
+                "query": {
+                    "match": {
+                        "special_notes.value": {
+                            "query": query_text,
+                            "boost": text_boost
+                        }
+                    }
+                }
+            }
+        },
+        "highlight": {
+            "fields": {
+                "special_notes.value": {
+                    "fragment_size": 200,
+                    "number_of_fragments": 3
+                },
+                "special_notes.key": {
+                    "fragment_size": 100,
+                    "number_of_fragments": 2
+                }
+            }
+        }
+    }
+    
+    try:
+        text_response = es.search(index=index_name, body=text_query)
+        semantic_response = semantic_search_special_notes(index_name, query_text, threshold)
+        
+        # 결과 병합
+        combined_hits = []
+        
+        # 텍스트 검색 결과 추가
+        for hit in text_response['hits']['hits']:
+            hit['_score'] *= text_boost
+            combined_hits.append(hit)
+        
+        # 의미기반 검색 결과 추가 (중복 제거)
+        existing_ids = {hit['_id'] for hit in combined_hits}
+        for hit in semantic_response['hits']['hits']:
+            if hit['_id'] not in existing_ids:
+                hit['_score'] *= semantic_boost
+                combined_hits.append(hit)
+        
+        # 점수 기준으로 정렬
+        combined_hits.sort(key=lambda x: x['_score'], reverse=True)
+        
+        return {
+            'hits': {
+                'total': {'value': len(combined_hits)},
+                'hits': combined_hits
+            }
+        }
+        
+    except Exception as e:
+        print(f"하이브리드 검색 오류: {str(e)}")
+        return None
+
 def search_ct_documents_by_multiple_packing_sets(
         index_name: str, 
         packing_sets: list, 
         lab_id: str = None, 
         lab_info: str = None, 
         optimum_capacity: str = None, 
-        special_note: str = None
+        special_note: str = None,
+        use_semantic_search: bool = True,
+        semantic_threshold: float = 0.7
     ):
     """
     여러 포장 정보 세트 중 하나라도 일치하는 CT 문서 검색 + lab_id로도 검색
@@ -278,6 +426,7 @@ def search_ct_documents_by_multiple_packing_sets(
         {"type": "용기", "material": "PP"}
     ]
     lab_id: str (optional)
+    use_semantic_search: bool - special_note 검색 시 의미기반 검색 사용 여부
     """
     should_nested_queries = []
     for packing in packing_sets:
@@ -301,6 +450,7 @@ def search_ct_documents_by_multiple_packing_sets(
                     }
                 }
             })
+    
     # lab_id 조건 추가
     must_queries = []
     if lab_id:
@@ -310,13 +460,28 @@ def search_ct_documents_by_multiple_packing_sets(
     if optimum_capacity:
         must_queries.append({"match": {"optimum_capacity": optimum_capacity}})
 
-    # special_note 조건 추가
-    if special_note:
+    # special_note 조건 추가 (의미기반 검색 사용 시)
+    if special_note and use_semantic_search:
+        # 의미기반 검색을 별도로 수행하고 결과를 필터링 조건으로 사용
+        semantic_results = semantic_search_special_notes(
+            index_name, special_note, semantic_threshold
+        )
+        if semantic_results and semantic_results['hits']['hits']:
+            # 의미기반 검색 결과의 문서 ID들을 필터링 조건으로 사용
+            doc_ids = [hit['_id'] for hit in semantic_results['hits']['hits']]
+            must_queries.append({"terms": {"document_id": doc_ids}})
+    elif special_note:
+        # 기존 텍스트 기반 검색
         must_queries.append({
             "nested": {
                 "path": "special_notes",
                 "query": {
-                    "match": {"special_notes.value": special_note}
+                    "match": {
+                        "special_notes.value": {
+                            "query": special_note,
+                            "minimum_should_match": "75%"
+                        }
+                    }
                 }
             }
         })
@@ -328,6 +493,7 @@ def search_ct_documents_by_multiple_packing_sets(
     if should_nested_queries:
         bool_query["should"] = should_nested_queries
         bool_query["minimum_should_match"] = 1
+    
     query = {
         "query": {
             "bool": bool_query
@@ -345,6 +511,7 @@ def search_ct_documents_by_multiple_packing_sets(
             }
         }
     }
+    
     print(f"[쿼리 로그][여러 포장 정보 세트 검색]\n{json.dumps(query, ensure_ascii=False, indent=2)}")
     try:
         response = es.search(index=index_name, body=query)

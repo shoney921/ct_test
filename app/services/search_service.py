@@ -2,7 +2,7 @@ from app.schemas.common import Document, PackingInfo
 from app.services.ct_document_search import *
 from app.schemas.api.search import SearchRequest
 
-def get_ct_document(input: SearchRequest):
+def get_ct_document(input: SearchRequest, use_semantic_search: bool = True, semantic_threshold: float = 0.7):
     # 빈 값들을 필터링하여 실제 검색 조건만 추출
     packing_spec_list = []
     for package in input.packages:
@@ -32,7 +32,9 @@ def get_ct_document(input: SearchRequest):
         input.lab_id, 
         input.lab_info, 
         input.optimum_capacity, 
-        input.special_note
+        input.special_note,
+        use_semantic_search,
+        semantic_threshold
     )
     hits = result['hits']['hits']
 
@@ -69,83 +71,108 @@ def get_ct_document_by_packing_info_list(packing_spec_list: list):
     print(result['hits']['hits'])
     return result
 
+def get_ct_document_semantic_only(special_note: str, threshold: float = 0.7, top_k: int = 10):
+    """의미기반 검색만 사용하여 special_notes 검색"""
+    result = semantic_search_special_notes("ct_documents", special_note, threshold, top_k)
+    hits = result['hits']['hits']
+
+    documents = []
+    for hit in hits:
+        try:
+            doc = Document(**hit['_source'])
+            documents.append(doc)
+        except Exception as e:
+            print("에러 발생 hit:", hit)
+            print("에러 메시지:", e)
+
+    print(f"\n=== 의미기반 검색 결과 (쿼리: '{special_note}') ===")
+    print(f"총 검색 결과: {len(documents)}개")
+    
+    for i, document in enumerate(documents):
+        print(f"\n문서 ID: {hits[i]['_id']} (유사도 점수: {hits[i]['_score']:.3f})")
+        print("ㅁ   ", document.file_name)
+        print("    포장재정보 :", document.packing_info)
+        
+        # 하이라이트 정보 출력
+        if 'highlight' in hits[i]:
+            print("🔍 하이라이트된 매칭 부분:")
+            for field, highlights in hits[i]['highlight'].items():
+                print(f"  📝 {field}: {' ... '.join(highlights)}")
+        
+        print("-" * 80)
+    return documents
+
+def get_ct_document_hybrid_search(special_note: str, text_boost: float = 1.0, semantic_boost: float = 2.0, threshold: float = 0.7):
+    """하이브리드 검색 (텍스트 + 의미기반)"""
+    result = hybrid_search_special_notes("ct_documents", special_note, text_boost, semantic_boost, threshold)
+    hits = result['hits']['hits']
+
+    documents = []
+    for hit in hits:
+        try:
+            doc = Document(**hit['_source'])
+            documents.append(doc)
+        except Exception as e:
+            print("에러 발생 hit:", hit)
+            print("에러 메시지:", e)
+
+    print(f"\n=== 하이브리드 검색 결과 (쿼리: '{special_note}') ===")
+    print(f"총 검색 결과: {len(documents)}개")
+    
+    for i, document in enumerate(documents):
+        print(f"\n문서 ID: {hits[i]['_id']} (점수: {hits[i]['_score']:.3f})")
+        print("ㅁ   ", document.file_name)
+        print("    포장재정보 :", document.packing_info)
+        
+        # 하이라이트 정보 출력
+        if 'highlight' in hits[i]:
+            print("🔍 하이라이트된 매칭 부분:")
+            for field, highlights in hits[i]['highlight'].items():
+                print(f"  📝 {field}: {' ... '.join(highlights)}")
+        
+        print("-" * 80)
+    return documents
+
 if __name__ == "__main__":
     index_name = "ct_documents"
     
     print("=== CT 문서 검색 시스템 테스트 ===\n")
     
-    # search_params = {
-    #     "product_name": "앰플",
-    #     # "customer": "Interstory",
-    #     "search_text": "진공감압"
-    # }
-    # result = advanced_search_ct_documents(index_name, search_params)
-    # print_ct_search_results(result, "고급 검색 (Lip + Interstory + 펌핑)")
-
-    # result = search_ct_documents_by_packing_info(index_name, packing_type="용기", material="PET", company="건동")
-    # print_ct_search_results(result, "키워드 검색 (용기 + PET + 건동)")
+    # # 의미기반 검색 테스트
+    # print("1. 의미기반 검색 테스트")
+    # print("=" * 50)
     
-
-    # get_ct_document_by_packing_info(packing_type="용기", material="PET", company="건동")
-
-    # packing_spec_list = [
-    #     {"type": "용기", "material": "PET", "company": "건동"},
-    #     {"type": "캡", "material": "PP", "company": "건동"},
-    #     # {"type": "튜브", "material": "PE", "company": "건동"},
+    # test_queries = [
+    #     "낙하 실패",
+    #     "물광 현상",
+    #     "누출 문제",
+    #     "포장 불량"
     # ]
-    # get_ct_document_by_packing_info_list(packing_spec_list)
-
-    input = SearchRequest(
-        packages=[
-            PackingInfo(type="용기", material="PET",spec="", company="건동"),
-            PackingInfo(type="캡", material="PP",spec="", company="건동"),
-        ],
-        lab_id="LAB001",
-        lab_info="건동 실험실",
-        optimum_capacity="100ml",
-        special_note="특이사항 없음"
-    )
-
-    input = SearchRequest(
-        packages=[
-            PackingInfo(type="", material="",spec="", company="두코"),
-        ],
-        lab_id="",
-        lab_info="",
-        optimum_capacity="",
-        special_note=""
-    )
-
-    input = SearchRequest(
-        packages=[
-            PackingInfo(type="용기", material="PET",spec="", company=""),
-        ],
-        lab_id="",
-        lab_info="",
-        optimum_capacity="",
-        special_note=""
-    )
-
-    input = SearchRequest(
-        packages=[
-            PackingInfo(type="", material="",spec="", company="두코"),
-        ],
-        lab_id="WE1532-PLB",
-        lab_info="",
-        optimum_capacity="",
-        special_note=""
-    )
-
-    input = SearchRequest(
-        packages=[
-            PackingInfo(type="", material="",spec="", company="두코"),
-        ],
-        lab_id="",
-        lab_info="",
-        optimum_capacity="",
-        special_note=""
-    )
-
+    
+    # for query in test_queries:
+    #     print(f"\n🔍 쿼리: '{query}'")
+    #     try:
+    #         result = get_ct_document_semantic_only(query, threshold=0.6, top_k=3)
+    #         if not result:
+    #             print("   결과 없음")
+    #     except Exception as e:
+    #         print(f"   오류: {str(e)}")
+    
+    # print("\n\n2. 하이브리드 검색 테스트")
+    # print("=" * 50)
+    
+    # for query in test_queries[:2]:
+    #     print(f"\n🔍 쿼리: '{query}'")
+    #     try:
+    #         result = get_ct_document_hybrid_search(query, text_boost=1.0, semantic_boost=2.0, threshold=0.6)
+    #         if not result:
+    #             print("   결과 없음")
+    #     except Exception as e:
+    #         print(f"   오류: {str(e)}")
+    
+    # print("\n\n3. 기존 검색 방식 테스트 (의미기반 검색 비활성화)")
+    # print("=" * 50)
+    
     input = SearchRequest(
         packages=[
             PackingInfo(type="", material="",spec="", company=""),
@@ -153,7 +180,14 @@ if __name__ == "__main__":
         lab_id="",
         lab_info="",
         optimum_capacity="",
-        special_note="낙하 실패"
+        special_note="나사선 크랙 발생"
     )
-
-    get_ct_document(input)
+    
+    # 의미기반 검색 비활성화
+    get_ct_document(input, use_semantic_search=False)
+    
+    print("\n\n4. 의미기반 검색 활성화 테스트")
+    print("=" * 50)
+    
+    # 의미기반 검색 활성화
+    get_ct_document(input, use_semantic_search=True, semantic_threshold=0.6)

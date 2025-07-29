@@ -22,3 +22,5 @@ __pycache__/
 data/
 
 node_modules/~
+
+service-account-key.json
