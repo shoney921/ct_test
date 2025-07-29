@@ -154,16 +154,36 @@ def refine_json(input_path, output_path):
             spec = clean_value(row.get('Unnamed: 6'))
             company = clean_value(row.get('Unnamed: 8'))
             if type_ is not None:
-                if not company:
-                    company = prev_company
+                # 마스크 포장재 정보 방어 로직 : 타입 문자열에 대괄호가 포함된 경우 파싱
+                if type_ and '[' in type_:
+                    # 줄바꿈으로 여러 항목이 있는 경우 분리
+                    type_items = type_.split('\n')
+                    
+                    for item in type_items:
+                        # 대괄호 안의 타입과 뒤의 재질 정보 분리
+                        if '[' in item and ']' in item:
+                            item_type = item[item.find('[')+1:item.find(']')]
+                            item_material = item[item.find(']')+1:].strip()
+                            
+                            # 기존 material 대신 파싱된 material 사용
+                            packing_info.append({
+                                'type': item_type,
+                                'material': item_material,
+                                'spec': spec,
+                                'company': company
+                            })
+                    
                 else:
-                    prev_company = company
-                packing_info.append({
-                    'type': type_,
-                    'material': material,
-                    'spec': spec,
-                    'company': company
-                })
+                    if not company:
+                        company = prev_company
+                    else:
+                        prev_company = company
+                    packing_info.append({
+                        'type': type_,
+                        'material': material,
+                        'spec': spec,
+                        'company': company
+                    })
 
         # 3) lab_id는 반복문 전체에서 항상 체크
         if str(row.get("Unnamed: 2", "")).strip() in ["처방번호", "Lab No."]:
