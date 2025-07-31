@@ -416,6 +416,8 @@ def search_ct_documents_by_multiple_packing_sets(
         lab_info: str = None, 
         optimum_capacity: str = None, 
         special_note: str = None,
+        test_date_start: str = None,
+        test_date_end: str = None,
         use_semantic_search: bool = True,
         semantic_threshold: float = 0.7
     ):
@@ -476,10 +478,9 @@ def search_ct_documents_by_multiple_packing_sets(
             "nested": {
                 "path": "special_notes",
                 "query": {
-                    "match": {
+                    "match_phrase": {
                         "special_notes.value": {
-                            "query": special_note,
-                            "minimum_should_match": "75%"
+                            "query": special_note
                         }
                     }
                 }
@@ -493,6 +494,11 @@ def search_ct_documents_by_multiple_packing_sets(
     if should_nested_queries:
         bool_query["should"] = should_nested_queries
         bool_query["minimum_should_match"] = 1
+    
+    if test_date_start:
+        bool_query["must"].append({"range": {"test_date": {"gte": test_date_start}}})
+    if test_date_end:
+        bool_query["must"].append({"range": {"test_date": {"lte": test_date_end}}})
     
     query = {
         "query": {

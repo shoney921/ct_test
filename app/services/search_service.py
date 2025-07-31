@@ -33,6 +33,8 @@ def get_ct_document(input: SearchRequest, use_semantic_search: bool = True, sema
         input.lab_info, 
         input.optimum_capacity, 
         input.special_note,
+        input.test_date_start,
+        input.test_date_end,
         use_semantic_search,
         semantic_threshold
     )
@@ -49,6 +51,7 @@ def get_ct_document(input: SearchRequest, use_semantic_search: bool = True, sema
 
     for i, document in enumerate(documents):
         print("ㅁ   ", document.file_name)
+        print("    실험날짜 :", document.test_date)
         print("    포장재정보 :", document.packing_info)
         
         # 하이라이트 정보 출력
@@ -57,7 +60,7 @@ def get_ct_document(input: SearchRequest, use_semantic_search: bool = True, sema
             for field, highlights in hits[i]['highlight'].items():
                 print(f"  📝 {field}: {' ... '.join(highlights)}")
         
-        print("-" * 80)
+        print("-" * 200)
     return documents
 
 
@@ -175,12 +178,14 @@ if __name__ == "__main__":
     
     input = SearchRequest(
         packages=[
-            PackingInfo(type="", material="",spec="", company=""),
+            PackingInfo(type="", material="",spec="", company="펌텍"),
         ],
         lab_id="",
         lab_info="",
         optimum_capacity="",
-        special_note="나사선 크랙 발생"
+        special_note="",
+        test_date_start="2025-01-01",
+        test_date_end="2025-04-28"
     )
     
     # 의미기반 검색 비활성화
@@ -190,4 +195,4 @@ if __name__ == "__main__":
     print("=" * 50)
     
     # 의미기반 검색 활성화
-    get_ct_document(input, use_semantic_search=True, semantic_threshold=0.6)
+    # get_ct_document(input, use_semantic_search=True, semantic_threshold=0.6)
