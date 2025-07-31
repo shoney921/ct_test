@@ -37,6 +37,9 @@ def process_ct_document_data(raw_data: Dict[str, Any]) -> Dict[str, Any]:
     
     if 'expected_date' in processed_data:
         processed_data['expected_date'] = clean_date_field(processed_data['expected_date'])
+
+    if 'test_result_date' in processed_data:
+        processed_data['test_result_date'] = clean_date_field(processed_data['test_result_date'])
     
     # 검색을 위한 통합 텍스트 필드 생성
     search_text_parts = []
@@ -97,7 +100,7 @@ def process_ct_document_data(raw_data: Dict[str, Any]) -> Dict[str, Any]:
     processed_data['tags'] = tags
     
     # special_notes에 임베딩 추가
-    processed_data = embedding_service.add_embeddings_to_document(processed_data)
+    # processed_data = embedding_service.add_embeddings_to_document(processed_data) # TODO 방안 모색 필요
     
     return processed_data
 

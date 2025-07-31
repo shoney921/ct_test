@@ -250,6 +250,11 @@ def refine_json(input_path, output_path):
                 })
 
         # 8) 기타 정보들 추출
+        if str(row.get('Unnamed: 0', '')).strip() in ['결과', 'Result', '판정']:
+            test_result = clean_value(row.get('Unnamed: 1'))
+            if str(row.get('Unnamed: 3', '')).strip() in ['일자', 'Date']:
+                test_result_date = clean_value(row.get('Unnamed: 4'))
+
         if str(row.get('Unnamed: 0', '')).strip().startswith('Test No'):
             test_no = clean_value(row.get('Unnamed: 0'))
             if test_no:
@@ -320,6 +325,8 @@ def refine_json(input_path, output_path):
         'test_quantity': test_quantity,
         'test_date': convert_excel_date_to_string(test_date),
         'expected_date': convert_excel_date_to_string(expected_date),
+        'test_result': test_result,
+        'test_result_date': convert_excel_date_to_string(test_result_date),
         'writer': writer,
         'reviewer': reviewer,
         'approver': approver,
